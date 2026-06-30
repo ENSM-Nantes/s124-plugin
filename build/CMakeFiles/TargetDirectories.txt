@@ -1,0 +1,7 @@
+/home/pedro/Documents/xmlpoints_pi_source.tar/build/CMakeFiles/xmlpoints_pi.dir
+/home/pedro/Documents/xmlpoints_pi_source.tar/build/CMakeFiles/edit_cache.dir
+/home/pedro/Documents/xmlpoints_pi_source.tar/build/CMakeFiles/rebuild_cache.dir
+/home/pedro/Documents/xmlpoints_pi_source.tar/build/CMakeFiles/list_install_components.dir
+/home/pedro/Documents/xmlpoints_pi_source.tar/build/CMakeFiles/install.dir
+/home/pedro/Documents/xmlpoints_pi_source.tar/build/CMakeFiles/install/local.dir
+/home/pedro/Documents/xmlpoints_pi_source.tar/build/CMakeFiles/install/strip.dir

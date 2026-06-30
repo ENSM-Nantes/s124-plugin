@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  XML Points Plugin – Sample Data File
+  =====================================
+  Supported root elements : <points>, <waypoints>, <locations>, or any name.
+  Supported child elements: <point>, <waypoint>, <location>, <item>.
+
+  Each point must have:
+    <latitude>   – decimal degrees (negative = South)
+    <longitude>  – decimal degrees (negative = West)
+    <information>– any text shown in the pop-up when you click the point
+
+  Field name aliases accepted by the plugin:
+    latitude / lat       longitude / lon
+    information / info / description / name / comment / text
+
+  Attributes are also accepted:
+    <point lat="48.8566" lon="2.3522" info="Paris"/>
+-->
+<points>
+
+  <point>
+    <latitude>48.8566</latitude>
+    <longitude>2.3522</longitude>
+    <information>Paris, France
+Eiffel Tower coordinates.
+This is a sample point.</information>
+  </point>
+
+  <point>
+    <latitude>51.5074</latitude>
+    <longitude>-0.1278</longitude>
+    <information>London, United Kingdom
+Big Ben area.
+Another sample point.</information>
+  </point>
+
+  <point>
+    <latitude>40.7128</latitude>
+    <longitude>-74.0060</longitude>
+    <information>New York City, USA
+Manhattan island.
+Third sample point.</information>
+  </point>
+
+  <point>
+    <latitude>35.6762</latitude>
+    <longitude>139.6503</longitude>
+    <information>Tokyo, Japan
+Near the Imperial Palace.
+Fourth sample point.</information>
+  </point>
+
+  <!-- Attribute-style point also works -->
+  <point lat="-33.8688" lon="151.2093" info="Sydney, Australia – Opera House area"/>
+
+</points>
