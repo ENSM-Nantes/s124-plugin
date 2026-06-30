@@ -101,16 +101,36 @@ void S124Parser::ParseGeomNode(wxXmlNode *node, std::vector<S124Geometry> &geoms
         CollectPosList(node, g.coords);
         if (!g.coords.empty()) geoms.push_back(g);
 
-    } else if (ln == wxT("Polygon")) {
+    } else if (ln == wxT("Surface")) {
+        // S-100 Surface: patches > PolygonPatch > exterior > LinearRing
+        wxXmlNode *patches = FindChild(node, wxT("patches"));
+        if (patches) {
+            wxXmlNode *c = patches->GetChildren();
+            while (c) {
+                if (c->GetType() == wxXML_ELEMENT_NODE)
+                    ParseGeomNode(c, geoms);
+                c = c->GetNext();
+            }
+        }
+
+    } else if (ln == wxT("Polygon") || ln == wxT("PolygonPatch")) {
         S124Geometry g; g.type = S124Geometry::SURFACE;
         wxXmlNode *ext  = FindChild(node, wxT("exterior"));
         wxXmlNode *ring = ext ? FindChild(ext, wxT("LinearRing"))
                               : FindChild(node, wxT("LinearRing"));
         wxXmlNode *plN  = ring ? FindChild(ring, wxT("posList")) : nullptr;
         if (plN) ParsePosList(plN->GetNodeContent().Strip(), g.coords);
-        // pos-list fallback
         if (g.coords.empty() && ring) CollectPosList(ring, g.coords);
         if (!g.coords.empty()) geoms.push_back(g);
+
+    } else if (ln.EndsWith(wxT("Property"))) {
+        // Unwrap S-100 property containers: pointProperty, curveProperty, surfaceProperty
+        wxXmlNode *c = node->GetChildren();
+        while (c) {
+            if (c->GetType() == wxXML_ELEMENT_NODE)
+                ParseGeomNode(c, geoms);
+            c = c->GetNext();
+        }
 
     } else if (ln.StartsWith(wxT("Multi")) || ln == wxT("GeometryCollection")) {
         // Recurse into member elements
@@ -159,62 +179,56 @@ void S124Parser::ExtractNavwarn(wxXmlNode *node,
         if (c->GetType() != wxXML_ELEMENT_NODE) { c = c->GetNext(); continue; }
 
         wxString ln = LocalName(c->GetName());
-        wxString cv = c->GetNodeContent();
 
-        if (ln == wxT("warningNumber")) {
-            long v = 0; cv.ToLong(&v); w.warningNumber = (int)v;
-        } else if (ln == wxT("year")) {
-            long v = 0; cv.ToLong(&v); w.year = (int)v;
-        } else if (ln == wxT("nameOfSeries")) {
-            w.seriesName = cv;
-        } else if (ln == wxT("warningType")) {
-            long v = 0; cv.ToLong(&v); w.warningType = (int)v;
-        } else if (ln == wxT("warningTypeDetails") || ln == wxT("navwarnTypeDetails")) {
-            long v = 0; cv.ToLong(&v); w.warningTypeDetail = (int)v;
-        } else if (ln == wxT("publicationTime")) {
-            w.publicationTime = cv;
-        } else if (ln == wxT("cancellationDate")) {
-            w.cancellationDate = cv;
-        } else if (ln == wxT("header")) {
-            wxXmlNode *hc = c->GetChildren();
-            while (hc) {
-                if (hc->GetType() == wxXML_ELEMENT_NODE) {
-                    wxString hln = LocalName(hc->GetName());
-                    if (hln == wxT("text"))     w.headerText = hc->GetNodeContent();
-                    else if (hln == wxT("language")) w.language = hc->GetNodeContent();
+        if (ln == wxT("messageSeriesIdentifier")) {
+            // warningNumber, year, nameOfSeries, warningType live inside this container
+            wxXmlNode *mc = c->GetChildren();
+            while (mc) {
+                if (mc->GetType() == wxXML_ELEMENT_NODE) {
+                    wxString mln = LocalName(mc->GetName());
+                    wxString mcv = mc->GetNodeContent();
+                    if (mln == wxT("warningNumber")) {
+                        long v = 0; mcv.ToLong(&v); w.warningNumber = (int)v;
+                    } else if (mln == wxT("year")) {
+                        long v = 0; mcv.ToLong(&v); w.year = (int)v;
+                    } else if (mln == wxT("nameOfSeries")) {
+                        w.seriesName = mcv;
+                    } else if (mln == wxT("warningType")) {
+                        // value is in the "code" attribute, not the text content
+                        wxString code = mc->GetAttribute(wxT("code"));
+                        long v = 0; code.ToLong(&v); w.warningType = (int)v;
+                    }
                 }
-                hc = hc->GetNext();
+                mc = mc->GetNext();
+            }
+        } else if (ln == wxT("navwarnTypeGeneral")) {
+            // code attribute carries the numeric category
+            wxString code = c->GetAttribute(wxT("code"));
+            long v = 0; code.ToLong(&v); w.warningTypeDetail = (int)v;
+        } else if (ln == wxT("publicationTime")) {
+            w.publicationTime = c->GetNodeContent();
+        } else if (ln == wxT("cancellationDate")) {
+            w.cancellationDate = c->GetNodeContent();
+        } else if (ln == wxT("generalArea") || ln == wxT("locality")) {
+            // Build headerText from area/locality names
+            wxXmlNode *ln_node = FindChild(c, wxT("locationName"));
+            if (ln_node) {
+                wxXmlNode *txt = FindChild(ln_node, wxT("text"));
+                wxXmlNode *lang = FindChild(ln_node, wxT("language"));
+                if (txt) {
+                    if (!w.headerText.IsEmpty()) w.headerText += wxT(" / ");
+                    w.headerText += txt->GetNodeContent();
+                }
+                if (lang && w.language.IsEmpty())
+                    w.language = lang->GetNodeContent();
             }
         } else if (ln == wxT("theWarningPart")) {
-            // Reference to NwPart or inline NwPart
+            // preamble-side reference to a NavwarnPart (not used in SHOM format but handle it)
             wxString href = c->GetAttribute(wxT("xlink:href"));
             if (href.IsEmpty()) href = c->GetAttribute(wxT("href"));
             if (!href.IsEmpty()) {
                 if (href.StartsWith(wxT("#"))) href = href.Mid(1);
                 partRefs.push_back(href);
-            } else {
-                wxXmlNode *gc = c->GetChildren();
-                while (gc) {
-                    if (gc->GetType() == wxXML_ELEMENT_NODE &&
-                        LocalName(gc->GetName()) == wxT("NwPart"))
-                        ExtractNwPartGeoms(gc, w.geometries);
-                    gc = gc->GetNext();
-                }
-            }
-        } else if (ln == wxT("geometry")) {
-            // Inline geometry or reference
-            wxString href = c->GetAttribute(wxT("xlink:href"));
-            if (href.IsEmpty()) href = c->GetAttribute(wxT("href"));
-            if (!href.IsEmpty()) {
-                if (href.StartsWith(wxT("#"))) href = href.Mid(1);
-                partRefs.push_back(href);
-            } else {
-                wxXmlNode *gc = c->GetChildren();
-                while (gc) {
-                    if (gc->GetType() == wxXML_ELEMENT_NODE)
-                        ParseGeomNode(gc, w.geometries);
-                    gc = gc->GetNext();
-                }
             }
         }
         c = c->GetNext();
@@ -230,28 +244,42 @@ bool S124Parser::ParseDoc(wxXmlDocument &doc,
     wxXmlNode *root = doc.GetRoot();
     if (!root) { err = _("Empty S-124 document."); return false; }
 
-    std::map<wxString, std::vector<S124Geometry>> partGeoms;
+    // Pass 1: collect NavwarnPreamble warnings and NavwarnPart geometries
+    // Parts link back to their preamble via <S124:header xlink:href="#<preamble-id>"/>
+    std::map<wxString, S124Warning> preambles;  // gml:id → warning
 
-    struct Rec { S124Warning warn; std::vector<wxString> partRefs; };
-    std::vector<Rec> recs;
+    struct PartData {
+        std::vector<S124Geometry> geoms;
+        wxString preambleId;
+    };
+    std::vector<PartData> parts;
 
-    // Two-pass: collect all features regardless of container element
     std::function<void(wxXmlNode*)> walk = [&](wxXmlNode *n) {
         while (n) {
             if (n->GetType() == wxXML_ELEMENT_NODE) {
                 wxString ln = LocalName(n->GetName());
-                if (ln == wxT("NavwarnTypeGeneral")) {
-                    Rec r;
-                    ExtractNavwarn(n, r.warn, r.partRefs);
-                    recs.push_back(std::move(r));
-                } else if (ln == wxT("NwPart")) {
-                    wxString id = GetGmlId(n);
-                    if (!id.IsEmpty()) {
-                        std::vector<S124Geometry> geoms;
-                        ExtractNwPartGeoms(n, geoms);
-                        if (!geoms.empty())
-                            partGeoms[id] = std::move(geoms);
+                if (ln == wxT("NavwarnPreamble")) {
+                    S124Warning w;
+                    std::vector<wxString> unused;
+                    ExtractNavwarn(n, w, unused);
+                    if (!w.id.IsEmpty())
+                        preambles[w.id] = std::move(w);
+                } else if (ln == wxT("NavwarnPart")) {
+                    PartData pd;
+                    ExtractNwPartGeoms(n, pd.geoms);
+                    // find the header reference that points back to the preamble
+                    wxXmlNode *c = n->GetChildren();
+                    while (c) {
+                        if (c->GetType() == wxXML_ELEMENT_NODE &&
+                            LocalName(c->GetName()) == wxT("header")) {
+                            wxString href = c->GetAttribute(wxT("xlink:href"));
+                            if (href.IsEmpty()) href = c->GetAttribute(wxT("href"));
+                            if (href.StartsWith(wxT("#"))) href = href.Mid(1);
+                            pd.preambleId = href;
+                        }
+                        c = c->GetNext();
                     }
+                    parts.push_back(std::move(pd));
                 } else {
                     walk(n->GetChildren());
                 }
@@ -261,21 +289,23 @@ bool S124Parser::ParseDoc(wxXmlDocument &doc,
     };
     walk(root->GetChildren());
 
-    for (auto &r : recs) {
-        for (const auto &ref : r.partRefs) {
-            auto it = partGeoms.find(ref);
-            if (it != partGeoms.end())
-                for (const auto &g : it->second)
-                    r.warn.geometries.push_back(g);
-        }
-        r.warn.computeCentroid();
-        out.push_back(std::move(r.warn));
+    // Pass 2: attach part geometries to their preamble warning
+    for (auto &pd : parts) {
+        auto it = preambles.find(pd.preambleId);
+        if (it != preambles.end())
+            for (auto &g : pd.geoms)
+                it->second.geometries.push_back(g);
+    }
+
+    for (auto &kv : preambles) {
+        kv.second.computeCentroid();
+        out.push_back(std::move(kv.second));
     }
 
     if (out.empty()) {
         err = _("No S-124 navigational warnings found in the document.\n\n"
                 "The file must be a valid S-124 GML dataset containing\n"
-                "NavwarnTypeGeneral features.");
+                "NavwarnPreamble features.");
         return false;
     }
     return true;
