@@ -5,45 +5,72 @@
 #include <wx/textctrl.h>
 #include <wx/button.h>
 
-InfoDialog::InfoDialog(wxWindow *parent,
-                       const wxString &title,
-                       const wxString &info,
-                       double lat,
-                       double lon)
-    : wxDialog(parent, wxID_ANY, title,
-               wxDefaultPosition, wxSize(380, 260),
+InfoDialog::InfoDialog(wxWindow *parent, const S124Warning &w)
+    : wxDialog(parent, wxID_ANY, _("S-124 Navigational Warning"),
+               wxDefaultPosition, wxSize(460, 380),
                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
-    wxBoxSizer *mainSizer = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
 
-    // Coordinates label
-    wxString coordStr = wxString::Format(
-        _("Latitude: %.6f°   Longitude: %.6f°"), lat, lon);
-    wxStaticText *coordLabel = new wxStaticText(this, wxID_ANY, coordStr);
-    wxFont boldFont = coordLabel->GetFont();
-    boldFont.SetWeight(wxFONTWEIGHT_BOLD);
-    coordLabel->SetFont(boldFont);
-    mainSizer->Add(coordLabel, 0, wxALL | wxEXPAND, 10);
+    auto addMeta = [&](const wxString &label, const wxString &value) {
+        if (value.IsEmpty()) return;
+        wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+        wxStaticText *lbl = new wxStaticText(this, wxID_ANY, label,
+                                             wxDefaultPosition, wxSize(130, -1));
+        wxFont bold = lbl->GetFont();
+        bold.SetWeight(wxFONTWEIGHT_BOLD);
+        lbl->SetFont(bold);
+        row->Add(lbl, 0, wxALIGN_TOP | wxRIGHT, 6);
+        row->Add(new wxStaticText(this, wxID_ANY, value), 1, wxEXPAND);
+        top->Add(row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+    };
 
-    // Separator
-    mainSizer->Add(new wxStaticLine(this), 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+    // Build title: "NAVAREA I / 2024 – Warning #42"
+    wxString title;
+    if (!w.seriesName.IsEmpty())
+        title = w.seriesName;
+    if (w.warningNumber > 0) {
+        if (!title.IsEmpty()) title += wxT(" / ");
+        if (w.year > 0) title += wxString::Format(wxT("%d – "), w.year);
+        title += wxString::Format(_("Warning #%d"), w.warningNumber);
+    }
+    if (!title.IsEmpty()) {
+        wxStaticText *titleLbl = new wxStaticText(this, wxID_ANY, title);
+        wxFont f = titleLbl->GetFont();
+        f.SetPointSize(f.GetPointSize() + 1);
+        f.SetWeight(wxFONTWEIGHT_BOLD);
+        titleLbl->SetFont(f);
+        top->Add(titleLbl, 0, wxALL, 10);
+        top->Add(new wxStaticLine(this), 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+    }
 
-    // Information label
-    mainSizer->Add(new wxStaticText(this, wxID_ANY, _("Information:")),
-                   0, wxLEFT | wxTOP, 10);
+    addMeta(_("Type:"),        w.warningTypeLabel());
+    addMeta(_("Published:"),   w.publicationTime);
+    addMeta(_("Cancelled:"),   w.cancellationDate);
+    addMeta(_("Language:"),    w.language);
 
-    // Scrollable text area for the information field
-    wxTextCtrl *infoCtrl = new wxTextCtrl(
-        this, wxID_ANY, info,
-        wxDefaultPosition, wxSize(-1, 130),
+    // Position (centroid)
+    if (w.centroidLat != 0.0 || w.centroidLon != 0.0) {
+        wxString pos = wxString::Format(wxT("%.5f°  %.5f°"),
+                                        w.centroidLat, w.centroidLon);
+        addMeta(_("Position:"), pos);
+    }
+
+    top->Add(new wxStaticLine(this), 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+    top->Add(new wxStaticText(this, wxID_ANY, _("Warning text:")),
+             0, wxLEFT | wxTOP, 10);
+
+    wxTextCtrl *txt = new wxTextCtrl(
+        this, wxID_ANY,
+        w.headerText.IsEmpty() ? _("(no text)") : w.headerText,
+        wxDefaultPosition, wxSize(-1, 140),
         wxTE_MULTILINE | wxTE_READONLY | wxTE_WORDWRAP);
-    mainSizer->Add(infoCtrl, 1, wxALL | wxEXPAND, 10);
+    top->Add(txt, 1, wxALL | wxEXPAND, 10);
 
-    // OK button
-    wxButton *okBtn = new wxButton(this, wxID_OK, _("Close"));
-    okBtn->SetDefault();
-    mainSizer->Add(okBtn, 0, wxALL | wxALIGN_RIGHT, 10);
+    wxButton *ok = new wxButton(this, wxID_OK, _("Close"));
+    ok->SetDefault();
+    top->Add(ok, 0, wxALL | wxALIGN_RIGHT, 10);
 
-    SetSizerAndFit(mainSizer);
+    SetSizerAndFit(top);
     Centre();
 }

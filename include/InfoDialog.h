@@ -3,12 +3,12 @@
 
 #include <wx/wx.h>
 #include <wx/dialog.h>
+#include "S124Warning.h"
 
 class InfoDialog : public wxDialog
 {
 public:
-    InfoDialog(wxWindow *parent, const wxString &title,
-               const wxString &info, double lat, double lon);
+    InfoDialog(wxWindow *parent, const S124Warning &warning);
 };
 
 #endif // INFO_DIALOG_H

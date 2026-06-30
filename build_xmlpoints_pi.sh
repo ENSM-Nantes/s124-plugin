@@ -91,6 +91,7 @@ BASE_DEPS=(
     lsb-release
     libgl-dev
     libglu1-mesa-dev
+    libcurl4-openssl-dev
     wget
 )
 

@@ -3,14 +3,8 @@
 
 #include <wx/wx.h>
 #include <vector>
-#include <string>
 #include "ocpn_plugin.h"
-
-struct XmlPoint {
-    double latitude;
-    double longitude;
-    wxString information;
-};
+#include "S124Warning.h"
 
 class PointsLayer
 {
@@ -19,23 +13,25 @@ public:
     ~PointsLayer();
 
     bool LoadFromFile(const wxString &filePath);
+    void SetWarnings(const std::vector<S124Warning> &warnings);
+
     void Render(wxDC &dc, PlugIn_ViewPort *vp);
     void RenderGL(PlugIn_ViewPort *vp);
 
-    // Returns index of point near screen coords, or -1
+    // Returns warning index at screen position, or -1
     int HitTest(int screenX, int screenY, PlugIn_ViewPort *vp);
-    const XmlPoint &GetPoint(int index) const { return m_points[index]; }
-    size_t GetPointCount() const { return m_points.size(); }
-    void Clear() { m_points.clear(); }
+    const S124Warning &GetWarning(int index) const { return m_warnings[index]; }
+    size_t GetWarningCount() const { return m_warnings.size(); }
+    void Clear() { m_warnings.clear(); }
 
     wxString GetLastError() const { return m_lastError; }
 
 private:
-    std::vector<XmlPoint> m_points;
+    std::vector<S124Warning> m_warnings;
     wxString m_lastError;
 
-    // Convert lat/lon to screen pixels
     wxPoint LatLonToScreen(double lat, double lon, PlugIn_ViewPort *vp);
+    wxColour WarningColor(int warningType) const;
 };
 
 #endif // POINTS_LAYER_H
