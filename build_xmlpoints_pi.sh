@@ -95,7 +95,7 @@ BASE_DEPS=(
 )
 
 info "Updating package list…"
-sudo apt-get update -qq
+sudo apt-get update -qq || warn "apt-get update had errors (possibly an unsupported PPA); continuing…"
 
 info "Installing base dependencies: ${BASE_DEPS[*]}"
 sudo apt-get install -y --ignore-missing "${BASE_DEPS[@]}"
@@ -160,16 +160,36 @@ find_or_download_ocpn_header() {
         fi
     fi
 
-    # Auto-download from the OpenCPN GitHub repository
+    # Auto-download from the OpenCPN GitHub repository, pinned to the installed version
     warn "ocpn_plugin.h not found in standard locations. Downloading from GitHub…"
     local sdk_dir="${HOME}/opencpn-sdk/include"
     mkdir -p "${sdk_dir}"
 
-    local url="https://raw.githubusercontent.com/OpenCPN/OpenCPN/master/include/ocpn_plugin.h"
+    # Derive git tag from installed opencpn package version (e.g. "1:5.12.4+dfsg-1" → "v5.12.4")
+    local ocpn_ver tag url
+    ocpn_ver=$(dpkg-query -W -f='${Version}' opencpn 2>/dev/null \
+               | sed 's/^[0-9]*://; s/[+~].*//')   # strip epoch and dfsg suffix
+    if [[ -n "${ocpn_ver}" ]]; then
+        tag="v${ocpn_ver}"
+        url="https://raw.githubusercontent.com/OpenCPN/OpenCPN/${tag}/include/ocpn_plugin.h"
+        info "Fetching ocpn_plugin.h for OpenCPN ${ocpn_ver} (tag ${tag})…"
+    else
+        warn "Cannot determine OpenCPN version; falling back to master branch."
+        url="https://raw.githubusercontent.com/OpenCPN/OpenCPN/master/include/ocpn_plugin.h"
+    fi
+
     if command -v wget &>/dev/null; then
-        wget -q --show-progress -O "${sdk_dir}/ocpn_plugin.h" "${url}"
+        wget -q --show-progress -O "${sdk_dir}/ocpn_plugin.h" "${url}" || {
+            warn "Tag ${tag} not found on GitHub; retrying with master…"
+            wget -q --show-progress -O "${sdk_dir}/ocpn_plugin.h" \
+                "https://raw.githubusercontent.com/OpenCPN/OpenCPN/master/include/ocpn_plugin.h"
+        }
     elif command -v curl &>/dev/null; then
-        curl -fSL "${url}" -o "${sdk_dir}/ocpn_plugin.h"
+        curl -fSL "${url}" -o "${sdk_dir}/ocpn_plugin.h" || {
+            warn "Tag ${tag} not found on GitHub; retrying with master…"
+            curl -fSL "https://raw.githubusercontent.com/OpenCPN/OpenCPN/master/include/ocpn_plugin.h" \
+                -o "${sdk_dir}/ocpn_plugin.h"
+        }
     else
         error "Neither wget nor curl is available. Install one and re-run, or manually place ocpn_plugin.h in ${sdk_dir}/"
     fi
@@ -282,15 +302,17 @@ info "Package created: ${TARBALL}"
 if $DO_INSTALL; then
     info "=== Step 6: Installing plugin for current user ==="
 
-    USER_PLUGIN_DIR="${HOME}/.opencpn/plugins"
+    # OpenCPN 5.x scans ~/.local/lib/opencpn/ for user-installed plugins.
+    # The legacy ~/.opencpn/plugins/ path is NOT scanned by modern OpenCPN.
+    USER_PLUGIN_DIR="${HOME}/.local/lib/opencpn"
     mkdir -p "${USER_PLUGIN_DIR}"
     cp "${SO_PATH}" "${USER_PLUGIN_DIR}/lib${PLUGIN_NAME}.so"
     info "Installed .so to ${USER_PLUGIN_DIR}/"
 
-    mkdir -p "${HOME}/.opencpn/plugins/${PLUGIN_NAME}"
-    cp "${SCRIPT_DIR}/data/sample_points.xml" \
-       "${HOME}/.opencpn/plugins/${PLUGIN_NAME}/"
-    info "Sample XML copied to ${HOME}/.opencpn/plugins/${PLUGIN_NAME}/"
+    USER_DATA_DIR="${HOME}/.local/share/opencpn/plugins/${PLUGIN_NAME}"
+    mkdir -p "${USER_DATA_DIR}"
+    cp "${SCRIPT_DIR}/data/sample_points.xml" "${USER_DATA_DIR}/"
+    info "Sample XML copied to ${USER_DATA_DIR}/"
 fi
 
 # --------------------------------------------------------------------------
@@ -306,18 +328,29 @@ echo "  Tarball        : ${TARBALL}"
 echo "  Target         : ${OCPN_TARGET} / OS ${OS_VER}"
 echo ""
 echo "HOW TO INSTALL IN OPENCPN:"
-echo "  Option A (GUI):"
-echo "    OpenCPN → Options → Plugins → Install Plugin"
-echo "    Select: ${TARBALL}"
+echo "  Option A – GUI import (recommended):"
+echo "    1. Open OpenCPN."
+echo "    2. Options → Plugins → (scroll to bottom) → Import plugin…"
+echo "    3. Select: ${TARBALL}"
+echo "    4. RESTART OpenCPN completely – the plugin only appears after restart."
 echo ""
-echo "  Option B (manual):"
+echo "  Option B – direct user install (no GUI needed):"
+echo "    bash ${0} --install"
+echo "    Then restart OpenCPN."
+echo ""
+echo "  Option C – system-wide install (all users):"
 echo "    sudo cp ${SO_PATH} /usr/lib/opencpn/"
-echo "    (or run this script with --install for user-local install)"
+echo "    Then restart OpenCPN."
+echo ""
+echo "  TROUBLESHOOTING – if the plugin does not appear after restart:"
+echo "    Check: ~/.opencpn/opencpn.log  (look for xmlpoints errors)"
+echo "    Verify: ls ~/.local/lib/opencpn/libxmlpoints_pi.so  (after option B)"
+echo "    Verify: ls /usr/lib/opencpn/libxmlpoints_pi.so      (after option C)"
 echo ""
 echo "HOW TO USE:"
 echo "  1. Start OpenCPN."
 echo "  2. Go to Options → Plugins → XML Points → Enable."
-echo "  3. Click the XML Points toolbar button (blue circle icon)."
+echo "  3. Close Options and click the XML Points toolbar button (blue circle icon)."
 echo "  4. Choose your XML file."
 echo "  5. Click any red marker on the chart to see its information."
 echo ""
