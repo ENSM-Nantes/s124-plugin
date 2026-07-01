@@ -7,8 +7,8 @@
 #include "PointsLayer.h"
 #include "SecomClient.h"
 
-#define PLUGIN_VERSION_MAJOR 3
-#define PLUGIN_VERSION_MINOR 1
+#define PLUGIN_VERSION_MAJOR 4
+#define PLUGIN_VERSION_MINOR 0
 #define MY_API_VERSION_MAJOR 1
 #define MY_API_VERSION_MINOR 16
 

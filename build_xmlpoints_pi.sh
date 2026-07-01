@@ -243,8 +243,6 @@ mkdir -p "${PACKAGE_DIR}/lib/opencpn"
 mkdir -p "${PACKAGE_DIR}/share/opencpn/plugins/${PLUGIN_NAME}"
 
 cp "${SO_PATH}" "${PACKAGE_DIR}/lib/opencpn/"
-cp "${SCRIPT_DIR}/data/sample_points.xml" \
-   "${PACKAGE_DIR}/share/opencpn/plugins/${PLUGIN_NAME}/"
 
 # Build metadata: derive target string from detected OS/arch
 ARCH=$(uname -m)
@@ -312,8 +310,6 @@ if $DO_INSTALL; then
 
     USER_DATA_DIR="${HOME}/.local/share/opencpn/plugins/${PLUGIN_NAME}"
     mkdir -p "${USER_DATA_DIR}"
-    cp "${SCRIPT_DIR}/data/sample_points.xml" "${USER_DATA_DIR}/"
-    info "Sample XML copied to ${USER_DATA_DIR}/"
 fi
 
 # --------------------------------------------------------------------------
@@ -354,7 +350,4 @@ echo "  2. Go to Options → Plugins → XML Points → Enable."
 echo "  3. Close Options and click the XML Points toolbar button (blue circle icon)."
 echo "  4. Choose your XML file."
 echo "  5. Click any red marker on the chart to see its information."
-echo ""
-echo "SAMPLE XML FORMAT:"
-echo "  See: ${SCRIPT_DIR}/data/sample_points.xml"
 echo ""

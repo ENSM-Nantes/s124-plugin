@@ -330,7 +330,11 @@ bool S124Parser::ParseString(const wxString &gml,
     wxStringInputStream sis(gml);
     wxXmlDocument doc;
     if (!doc.Load(sis)) {
-        err = _("Failed to parse S-124 GML data.");
+        wxString snippet = gml.Left(300).Trim(true);
+        err = wxString::Format(
+            _("Failed to parse S-124 GML data.\n\nReceived (%zu bytes):\n%s%s"),
+            (size_t)gml.size(), snippet,
+            gml.size() > 300 ? wxT("\n[…]") : wxT(""));
         return false;
     }
     return ParseDoc(doc, out, err);

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(xmlpoints_pi VERSION 3.0.0)
+project(xmlpoints_pi VERSION 4.0.0)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -52,5 +52,3 @@ set_target_properties(xmlpoints_pi PROPERTIES
 )
 
 install(TARGETS xmlpoints_pi LIBRARY DESTINATION lib/opencpn)
-install(FILES data/sample_s124.gml
-    DESTINATION share/opencpn/plugins/xmlpoints_pi OPTIONAL)
