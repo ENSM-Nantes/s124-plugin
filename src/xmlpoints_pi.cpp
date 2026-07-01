@@ -2,7 +2,10 @@
 #include "InfoDialog.h"
 #include "SecomDialog.h"
 #include "SecomClient.h"
+#include "S124Parser.h"
 #include <wx/filedlg.h>
+#include <wx/dirdlg.h>
+#include <wx/dir.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
 #include <wx/menu.h>
@@ -10,6 +13,7 @@
 // Menu IDs
 enum {
     ID_OPEN_FILE   = wxID_HIGHEST + 1,
+    ID_OPEN_FOLDER,
     ID_SECOM_CFG,
     ID_SECOM_REFRESH,
     ID_CLEAR
@@ -94,8 +98,9 @@ wxString xmlpoints_pi::GetLongDescription()
 void xmlpoints_pi::OnToolbarToolCallback(int /*id*/)
 {
     wxMenu menu;
-    menu.Append(ID_OPEN_FILE,      _("Open local S-124 file…"));
-    menu.Append(ID_SECOM_CFG,      _("Connect to SECOM…"));
+    menu.Append(ID_OPEN_FILE,   _("Open local S-124 file…"));
+    menu.Append(ID_OPEN_FOLDER, _("Open S-124 folder…"));
+    menu.Append(ID_SECOM_CFG,   _("Connect to SECOM…"));
     menu.AppendSeparator();
     wxMenuItem *refreshItem =
         menu.Append(ID_SECOM_REFRESH, _("Refresh from SECOM"));
@@ -104,6 +109,7 @@ void xmlpoints_pi::OnToolbarToolCallback(int /*id*/)
     menu.Append(ID_CLEAR, _("Clear all warnings"));
 
     menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnOpenLocalFile();    }, ID_OPEN_FILE);
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnOpenFolder();       }, ID_OPEN_FOLDER);
     menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnOpenSecomDialog();  }, ID_SECOM_CFG);
     menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnRefreshSecom();     }, ID_SECOM_REFRESH);
     menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) {
@@ -144,6 +150,57 @@ void xmlpoints_pi::OnOpenLocalFile()
 
     SaveConfig();
     RequestRefresh(m_parent_window);
+}
+
+void xmlpoints_pi::OnOpenFolder()
+{
+    wxDirDialog dlg(
+        m_parent_window,
+        _("Select folder with S-124 GML files"),
+        wxEmptyString,
+        wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+
+    if (dlg.ShowModal() != wxID_OK) return;
+
+    wxString folder = dlg.GetPath();
+    wxDir dir(folder);
+    if (!dir.IsOpened()) {
+        wxMessageBox(_("Could not open the selected folder."),
+                     _("S-124 – Error"), wxOK | wxICON_ERROR, m_parent_window);
+        return;
+    }
+
+    std::vector<S124Warning> allWarnings;
+    int fileCount = 0;
+    wxArrayString errors;
+
+    for (const wxString &pattern : { wxString("*.gml"), wxString("*.xml") }) {
+        wxString filename;
+        bool found = dir.GetFirst(&filename, pattern, wxDIR_FILES);
+        while (found) {
+            wxString path = folder + wxFILE_SEP_PATH + filename;
+            std::vector<S124Warning> fileWarnings;
+            wxString err;
+            if (S124Parser::ParseFile(path, fileWarnings, err)) {
+                allWarnings.insert(allWarnings.end(), fileWarnings.begin(), fileWarnings.end());
+                fileCount++;
+            } else {
+                errors.Add(filename + ": " + err);
+            }
+            found = dir.GetNext(&filename);
+        }
+    }
+
+    m_layer->SetWarnings(allWarnings);
+    RequestRefresh(m_parent_window);
+
+    wxString msg = wxString::Format(
+        _("Loaded %zu navigational warning(s) from %d file(s) in:\n%s"),
+        allWarnings.size(), fileCount, folder);
+    if (!errors.IsEmpty())
+        msg += _("\n\nErrors:\n") + wxJoin(errors, '\n');
+
+    wxMessageBox(msg, _("S-124 Warnings"), wxOK | wxICON_INFORMATION, m_parent_window);
 }
 
 void xmlpoints_pi::OnOpenSecomDialog()
