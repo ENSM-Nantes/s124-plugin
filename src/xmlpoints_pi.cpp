@@ -45,14 +45,35 @@ int xmlpoints_pi::Init(void)
     LoadConfig();
     m_parent_window = GetOCPNCanvasWindow();
 
-    wxBitmap bmp(16, 16);
+    // Warning-triangle icon: black-outlined amber triangle with an
+    // exclamation mark. Drawn onto a magenta key colour, then that colour
+    // is turned into a real alpha channel (InitAlpha honours the mask) so
+    // the background is transparent even on renderers that ignore wxMask.
+    const int iconSize = 32;
+    wxBitmap bmp(iconSize, iconSize);
     wxMemoryDC mdc(bmp);
-    mdc.SetBackground(wxBrush(wxColour(220, 50, 50)));
+    const wxColour maskColour(255, 0, 255);
+    mdc.SetBackground(wxBrush(maskColour));
     mdc.Clear();
-    mdc.SetPen(*wxWHITE_PEN);
-    mdc.SetBrush(*wxWHITE_BRUSH);
-    mdc.DrawCircle(8, 8, 5);
+
+    const wxPoint triangle[3] = {
+        wxPoint(16, 2), wxPoint(30, 28), wxPoint(2, 28)
+    };
+    mdc.SetPen(wxPen(*wxBLACK, 2));
+    mdc.SetBrush(wxBrush(wxColour(255, 193, 7)));
+    mdc.DrawPolygon(3, triangle);
+
+    mdc.SetPen(*wxBLACK_PEN);
+    mdc.SetBrush(*wxBLACK_BRUSH);
+    mdc.DrawRectangle(14, 12, 4, 10);
+    mdc.DrawRectangle(14, 24, 4, 4);
+
     mdc.SelectObject(wxNullBitmap);
+
+    wxImage img = bmp.ConvertToImage();
+    img.SetMaskColour(maskColour.Red(), maskColour.Green(), maskColour.Blue());
+    img.InitAlpha();
+    bmp = wxBitmap(img);
 
     m_toolbar_item_id = InsertPlugInTool(
         _("S-124 Warnings"), &bmp, &bmp, wxITEM_NORMAL,
