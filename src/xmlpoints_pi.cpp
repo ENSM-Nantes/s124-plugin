@@ -9,6 +9,8 @@
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
 #include <wx/menu.h>
+#include <wx/region.h>
+#include <cstring>
 
 // Menu IDs
 enum {
@@ -22,6 +24,52 @@ enum {
 extern "C" opencpn_plugin *create_pi(void *ppimgr) { return new xmlpoints_pi(ppimgr); }
 extern "C" void destroy_pi(opencpn_plugin *p) { delete p; }
 
+// ── icon ───────────────────────────────────────────────────────────────────────
+// Warning-triangle icon: black-outlined amber triangle with an exclamation
+// mark. Built by testing exact polygon/rect membership per pixel (no
+// anti-aliased wxDC drawing), so there is no blended-colour fringe left
+// over at the edges — pixels are either fully opaque foreground or fully
+// transparent background. Used for both the toolbar tool and the plugin
+// list entry in Options, so the two stay visually identical.
+static wxBitmap MakeWarningTriangleBitmap()
+{
+    const int iconSize = 32;
+
+    const wxPoint outerTri[3] = {
+        wxPoint(16, 2), wxPoint(30, 28), wxPoint(2, 28)
+    };
+    const wxPoint innerTri[3] = {
+        wxPoint(16, 5), wxPoint(28, 27), wxPoint(4, 27)
+    };
+    wxRegion outerRegion(3, outerTri);
+    wxRegion borderRegion(outerRegion);
+    borderRegion.Subtract(wxRegion(3, innerTri));
+
+    wxRegion exclRegion(wxRect(14, 12, 4, 10));
+    exclRegion.Union(wxRect(14, 24, 4, 4));
+
+    wxImage img(iconSize, iconSize);
+    img.InitAlpha();
+    memset(img.GetAlpha(), 0, iconSize * iconSize);
+
+    for (int y = 0; y < iconSize; ++y) {
+        for (int x = 0; x < iconSize; ++x) {
+            if (outerRegion.Contains(x, y) == wxOutRegion)
+                continue;
+
+            const bool isBlack = borderRegion.Contains(x, y) != wxOutRegion ||
+                                  exclRegion.Contains(x, y) != wxOutRegion;
+            if (isBlack)
+                img.SetRGB(x, y, 0, 0, 0);
+            else
+                img.SetRGB(x, y, 255, 193, 7);
+            img.SetAlpha(x, y, 255);
+        }
+    }
+
+    return wxBitmap(img);
+}
+
 // ── constructor / destructor ──────────────────────────────────────────────────
 
 xmlpoints_pi::xmlpoints_pi(void *ppimgr)
@@ -29,6 +77,7 @@ xmlpoints_pi::xmlpoints_pi(void *ppimgr)
     , m_toolbar_item_id(-1)
     , m_layer(nullptr)
     , m_parent_window(nullptr)
+    , m_pluginBitmap(MakeWarningTriangleBitmap())
 {
     m_layer = new PointsLayer();
 }
@@ -45,38 +94,8 @@ int xmlpoints_pi::Init(void)
     LoadConfig();
     m_parent_window = GetOCPNCanvasWindow();
 
-    // Warning-triangle icon: black-outlined amber triangle with an
-    // exclamation mark. Drawn onto a magenta key colour, then that colour
-    // is turned into a real alpha channel (InitAlpha honours the mask) so
-    // the background is transparent even on renderers that ignore wxMask.
-    const int iconSize = 32;
-    wxBitmap bmp(iconSize, iconSize);
-    wxMemoryDC mdc(bmp);
-    const wxColour maskColour(255, 0, 255);
-    mdc.SetBackground(wxBrush(maskColour));
-    mdc.Clear();
-
-    const wxPoint triangle[3] = {
-        wxPoint(16, 2), wxPoint(30, 28), wxPoint(2, 28)
-    };
-    mdc.SetPen(wxPen(*wxBLACK, 2));
-    mdc.SetBrush(wxBrush(wxColour(255, 193, 7)));
-    mdc.DrawPolygon(3, triangle);
-
-    mdc.SetPen(*wxBLACK_PEN);
-    mdc.SetBrush(*wxBLACK_BRUSH);
-    mdc.DrawRectangle(14, 12, 4, 10);
-    mdc.DrawRectangle(14, 24, 4, 4);
-
-    mdc.SelectObject(wxNullBitmap);
-
-    wxImage img = bmp.ConvertToImage();
-    img.SetMaskColour(maskColour.Red(), maskColour.Green(), maskColour.Blue());
-    img.InitAlpha();
-    bmp = wxBitmap(img);
-
     m_toolbar_item_id = InsertPlugInTool(
-        _("S-124 Warnings"), &bmp, &bmp, wxITEM_NORMAL,
+        _("S-124 Warnings"), &m_pluginBitmap, &m_pluginBitmap, wxITEM_NORMAL,
         _("S-124 Navigational Warnings"), _("S-124 Navigational Warnings"),
         nullptr, -1, 0, this);
 
@@ -92,6 +111,11 @@ int xmlpoints_pi::Init(void)
            INSTALLS_TOOLBAR_TOOL         |
            WANTS_MOUSE_EVENTS            |
            WANTS_CONFIG;
+}
+
+wxBitmap *xmlpoints_pi::GetPlugInBitmap()
+{
+    return &m_pluginBitmap;
 }
 
 bool xmlpoints_pi::DeInit(void)

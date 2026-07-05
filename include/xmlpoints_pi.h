@@ -20,6 +20,7 @@ public:
 
     int  Init(void) override;
     bool DeInit(void) override;
+    wxBitmap *GetPlugInBitmap() override;
 
     int GetAPIVersionMajor() override { return MY_API_VERSION_MAJOR; }
     int GetAPIVersionMinor() override { return MY_API_VERSION_MINOR; }
@@ -53,6 +54,7 @@ private:
     int          m_toolbar_item_id;
     PointsLayer *m_layer;
     wxWindow    *m_parent_window;
+    wxBitmap     m_pluginBitmap;
 
     wxString    m_lastFilePath;
     SecomConfig m_secomCfg;
