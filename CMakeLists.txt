@@ -54,6 +54,8 @@ endif()
 
 set_target_properties(xmlpoints_pi PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 
 install(TARGETS xmlpoints_pi LIBRARY DESTINATION lib/opencpn)
