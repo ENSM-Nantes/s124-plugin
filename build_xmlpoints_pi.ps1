@@ -169,9 +169,16 @@ function Find-OrDownload-OcpnApi {
     New-Item -ItemType Directory -Force -Path "$sdkDir\msvc-wx32" | Out-Null
 
     $base = "https://raw.githubusercontent.com/OpenCPN/opencpn-libs/master/$ApiVersion"
-    Invoke-WebRequest -Uri "$base/ocpn_plugin.h"              -OutFile $header
-    Invoke-WebRequest -Uri "$base/msvc-wx32/opencpn.lib"      -OutFile $lib
-    Invoke-WebRequest -Uri "$base/msvc-wx32/opencpn.pdb"      -OutFile "$sdkDir\msvc-wx32\opencpn.pdb" -ErrorAction SilentlyContinue
+    Invoke-WebRequest -Uri "$base/ocpn_plugin.h"         -OutFile $header
+    Invoke-WebRequest -Uri "$base/msvc-wx32/opencpn.lib" -OutFile $lib
+    # opencpn.pdb (debug symbols) is optional and not present for every api-XX
+    # package; Invoke-WebRequest throws a terminating WebException on HTTP
+    # errors regardless of -ErrorAction, so this needs a real try/catch.
+    try {
+        Invoke-WebRequest -Uri "$base/msvc-wx32/opencpn.pdb" -OutFile "$sdkDir\msvc-wx32\opencpn.pdb"
+    } catch {
+        Warn "opencpn.pdb not available for $ApiVersion (debug symbols only, not required to build) - skipping."
+    }
 
     if (-not (Test-Path $header) -or -not (Test-Path $lib)) {
         Die ("Failed to download the $ApiVersion plugin API package. Download it manually from`n" + `
