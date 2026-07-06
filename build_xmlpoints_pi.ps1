@@ -5,7 +5,9 @@
 .DESCRIPTION
     Windows counterpart to build_xmlpoints_pi.sh. Installs/locates build
     dependencies via vcpkg, configures the project with CMake + MSVC, builds
-    a Release x64 xmlpoints_pi.dll, and packages it into a .zip.
+    a Release Win32 (x86) xmlpoints_pi.dll - matching the prebuilt opencpn.lib
+    import library available for this plugin API version - and packages it
+    into a .zip.
 
 .PARAMETER Install
     Copy the built DLL into this user's OpenCPN plugin directory after build.
@@ -122,7 +124,11 @@ if (-not $VcpkgRoot) {
 }
 Info "Using vcpkg at: $VcpkgRoot"
 
-$Triplet = "x64-windows"
+# The prebuilt opencpn.lib shipped in OpenCPN/opencpn-libs (see below) is a
+# 32-bit (x86) import library, matching the installed OpenCPN.exe this build
+# targets - a DLL's bitness must match the process that loads it, so the
+# whole toolchain (vcpkg triplet, generator platform) targets x86 throughout.
+$Triplet = "x86-windows"
 
 # ----------------------------------------------------------------------------
 # Install wxWidgets + curl via vcpkg
@@ -195,11 +201,11 @@ Info "OpenCPN import lib : $($OcpnApi.Lib)"
 # ----------------------------------------------------------------------------
 # Step 2 - Configure with CMake
 # ----------------------------------------------------------------------------
-Info "=== Step 2: Configuring with CMake ($Generator, x64) ==="
+Info "=== Step 2: Configuring with CMake ($Generator, Win32) ==="
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
 
 cmake -S $ScriptDir -B $BuildDir `
-    -G $Generator -A x64 `
+    -G $Generator -A Win32 `
     -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
     -DVCPKG_TARGET_TRIPLET="$Triplet" `
     -DOPENCPN_INCLUDE_DIR="$($OcpnApi.Include)" `
@@ -226,7 +232,7 @@ Remove-Item -Recurse -Force $PackageDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path "$PackageDir\plugins" | Out-Null
 Copy-Item $DllPath "$PackageDir\plugins\${PluginName}.dll"
 
-$Arch = "x86_64"
+$Arch = "x86"
 $OcpnTarget = "MSVC-${Arch}"
 
 @"
