@@ -238,8 +238,15 @@ Remove-Item -Recurse -Force $PackageDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path "$PackageDir\plugins" | Out-Null
 Copy-Item $DllPath "$PackageDir\plugins\${PluginName}.dll"
 
+# "msvc-wx32" is the actual enum value OpenCPN's plugin schema (ocpn-plugin.xsd
+# in OpenCPN/plugins) recognizes for a 32-bit MSVC build against wxWidgets 3.2
+# - matching the "msvc-wx32" opencpn-libs folder this build's opencpn.lib came
+# from. An unrecognized <target> string is exactly what "Plugin incompatible"
+# means; it is not a free-form label.
 $Arch = "x86"
-$OcpnTarget = "MSVC-${Arch}"
+$OcpnTarget = "msvc-wx32"
+$WinVersion = [System.Environment]::OSVersion.Version.ToString()
+$TarballUri = "file:///" + ($TarballPath -replace '\\', '/')
 
 @"
 <?xml version="1.0" encoding="utf-8" ?>
@@ -251,14 +258,16 @@ $OcpnTarget = "MSVC-${Arch}"
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
   <author>xmlpoints_pi</author>
+  <source>https://example.invalid/xmlpoints_pi</source>
   <description>Reads an XML file with latitude, longitude and information fields. Plots each entry as a clickable marker on the chart. Clicking a marker shows a popup with the information text.</description>
   <target>$OcpnTarget</target>
-  <build-target>MSVC</build-target>
+  <target-version>$WinVersion</target-version>
   <target-arch>$Arch</target-arch>
+  <tarball-url>$TarballUri</tarball-url>
 </plugin>
 "@ | Set-Content -Path "$PackageDir\metadata.xml" -Encoding utf8
 
-Info "Package metadata: target=$OcpnTarget"
+Info "Package metadata: target=$OcpnTarget target-version=$WinVersion"
 
 # ----------------------------------------------------------------------------
 # Step 5 - Create .tar.gz
