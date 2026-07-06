@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD 11)
 
 find_package(wxWidgets REQUIRED COMPONENTS core base xml aui gl net)
 include(${wxWidgets_USE_FILE})
+
+if(POLICY CMP0072)
+    cmake_policy(SET CMP0072 NEW)
+endif()
+set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
 
 # libcurl – optional but required for SECOM support
