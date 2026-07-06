@@ -24,6 +24,15 @@ endif()
 set(OPENCPN_INCLUDE_DIR "$ENV{HOME}/opencpn-sdk/include"
     CACHE PATH "OpenCPN include directory")
 
+# Windows/MSVC only: opencpn_plugin/PlugInChartBase etc. are implemented inside
+# opencpn.exe itself. On Linux those symbols are left unresolved at link time
+# and satisfied at dlopen() time by the running opencpn process, but the MSVC
+# linker requires them resolved up front, so the plugin must link against a
+# prebuilt import library that exports them (see OpenCPN/opencpn-libs, e.g.
+# api-21/msvc-wx32/opencpn.lib, built against wxWidgets 3.2).
+set(OPENCPN_IMPORT_LIB "" CACHE FILEPATH
+    "Path to opencpn.lib (required on Windows/MSVC only)")
+
 include_directories(
     ${OPENCPN_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/include
@@ -50,6 +59,18 @@ target_link_libraries(xmlpoints_pi
 if(CURL_FOUND)
     target_include_directories(xmlpoints_pi PRIVATE ${CURL_INCLUDE_DIRS})
     target_link_libraries(xmlpoints_pi ${CURL_LIBRARIES})
+endif()
+
+if(WIN32 AND MSVC)
+    if(NOT OPENCPN_IMPORT_LIB)
+        message(FATAL_ERROR
+            "OPENCPN_IMPORT_LIB is not set. On Windows/MSVC this plugin must "
+            "link against opencpn.lib (see OpenCPN/opencpn-libs, e.g. "
+            "api-21/msvc-wx32/opencpn.lib) to resolve opencpn_plugin/"
+            "PlugInChartBase symbols that live inside opencpn.exe.")
+    endif()
+    target_compile_definitions(xmlpoints_pi PRIVATE UNICODE _UNICODE)
+    target_link_libraries(xmlpoints_pi ${OPENCPN_IMPORT_LIB})
 endif()
 
 set_target_properties(xmlpoints_pi PROPERTIES

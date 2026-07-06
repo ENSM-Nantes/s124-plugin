@@ -142,31 +142,48 @@ if ($LASTEXITCODE -ne 0) {
 $VcpkgToolchain = "$VcpkgRoot\scripts\buildsystems\vcpkg.cmake"
 
 # ----------------------------------------------------------------------------
-# Locate or download ocpn_plugin.h
+# Locate or download the OpenCPN plugin API package (header + import lib)
 # ----------------------------------------------------------------------------
-function Find-OrDownload-OcpnHeader {
-    $candidates = @(
-        "$env:USERPROFILE\opencpn-sdk\include",
-        "${env:ProgramFiles}\OpenCPN\include",
-        "${env:ProgramFiles(x86)}\OpenCPN\include"
-    )
-    foreach ($dir in $candidates) {
-        if (Test-Path "$dir\ocpn_plugin.h") { return $dir }
+# IMPORTANT: this must come from OpenCPN/opencpn-libs's api-XX packages, NOT
+# the bare ocpn_plugin.h in OpenCPN/OpenCPN's master branch. opencpn.exe
+# implements opencpn_plugin/PlugInChartBase itself; on Linux those symbols
+# are left unresolved at link time and satisfied at dlopen() time by the
+# running opencpn process, but MSVC's linker needs them resolved up front.
+# Each api-XX folder in opencpn-libs ships a matched pair: ocpn_plugin.h and
+# a prebuilt msvc-wx32/opencpn.lib import library built against wxWidgets
+# 3.2 that exports exactly what that header's class hierarchy declares -
+# mixing a header from one source with an unrelated .lib will just move the
+# unresolved-symbol errors around instead of fixing them.
+$ApiVersion = "api-21"
+
+function Find-OrDownload-OcpnApi {
+    $sdkDir = "$env:USERPROFILE\opencpn-sdk\$ApiVersion"
+    $header = "$sdkDir\ocpn_plugin.h"
+    $lib    = "$sdkDir\msvc-wx32\opencpn.lib"
+
+    if ((Test-Path $header) -and (Test-Path $lib)) {
+        return @{ Include = $sdkDir; Lib = $lib }
     }
 
-    Warn "ocpn_plugin.h not found locally. Downloading from GitHub (master branch) ..."
-    $sdkDir = "$env:USERPROFILE\opencpn-sdk\include"
-    New-Item -ItemType Directory -Force -Path $sdkDir | Out-Null
-    $url = "https://raw.githubusercontent.com/OpenCPN/OpenCPN/master/include/ocpn_plugin.h"
-    Invoke-WebRequest -Uri $url -OutFile "$sdkDir\ocpn_plugin.h"
-    if (-not (Test-Path "$sdkDir\ocpn_plugin.h")) {
-        Die "Failed to download ocpn_plugin.h. Download it manually into $sdkDir\"
+    Warn "$ApiVersion plugin API package not found locally. Downloading from OpenCPN/opencpn-libs ..."
+    New-Item -ItemType Directory -Force -Path "$sdkDir\msvc-wx32" | Out-Null
+
+    $base = "https://raw.githubusercontent.com/OpenCPN/opencpn-libs/master/$ApiVersion"
+    Invoke-WebRequest -Uri "$base/ocpn_plugin.h"              -OutFile $header
+    Invoke-WebRequest -Uri "$base/msvc-wx32/opencpn.lib"      -OutFile $lib
+    Invoke-WebRequest -Uri "$base/msvc-wx32/opencpn.pdb"      -OutFile "$sdkDir\msvc-wx32\opencpn.pdb" -ErrorAction SilentlyContinue
+
+    if (-not (Test-Path $header) -or -not (Test-Path $lib)) {
+        Die ("Failed to download the $ApiVersion plugin API package. Download it manually from`n" + `
+             "  https://github.com/OpenCPN/opencpn-libs/tree/master/$ApiVersion`n" + `
+             "into $sdkDir\")
     }
-    return $sdkDir
+    return @{ Include = $sdkDir; Lib = $lib }
 }
 
-$OcpnInclude = Find-OrDownload-OcpnHeader
-Info "OpenCPN include path: $OcpnInclude"
+$OcpnApi = Find-OrDownload-OcpnApi
+Info "OpenCPN plugin API: $($OcpnApi.Include)"
+Info "OpenCPN import lib : $($OcpnApi.Lib)"
 
 # ----------------------------------------------------------------------------
 # Step 2 - Configure with CMake
@@ -178,7 +195,8 @@ cmake -S $ScriptDir -B $BuildDir `
     -G $Generator -A x64 `
     -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
     -DVCPKG_TARGET_TRIPLET="$Triplet" `
-    -DOPENCPN_INCLUDE_DIR="$OcpnInclude"
+    -DOPENCPN_INCLUDE_DIR="$($OcpnApi.Include)" `
+    -DOPENCPN_IMPORT_LIB="$($OcpnApi.Lib)"
 if ($LASTEXITCODE -ne 0) { Die "CMake configure failed. See output above." }
 
 # ----------------------------------------------------------------------------
