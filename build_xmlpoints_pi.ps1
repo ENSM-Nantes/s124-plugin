@@ -202,6 +202,11 @@ Info "OpenCPN import lib : $($OcpnApi.Lib)"
 # Step 2 - Configure with CMake
 # ----------------------------------------------------------------------------
 Info "=== Step 2: Configuring with CMake ($Generator, Win32) ==="
+# CMake refuses to change generator/platform in an existing build dir (e.g.
+# after switching x64 -> Win32), so always reconfigure from scratch here -
+# reconfiguring is cheap compared to the actual compile step, and this keeps
+# the script idempotent regardless of what a previous run configured.
+Remove-Item -Recurse -Force $BuildDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
 
 cmake -S $ScriptDir -B $BuildDir `
