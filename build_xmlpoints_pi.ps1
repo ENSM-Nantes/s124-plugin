@@ -129,7 +129,18 @@ Info "Using vcpkg at: $VcpkgRoot"
 # 32-bit (x86) import library, matching the installed OpenCPN.exe this build
 # targets - a DLL's bitness must match the process that loads it, so the
 # whole toolchain (vcpkg triplet, generator platform) targets x86 throughout.
-$Triplet = "x86-windows"
+#
+# Use a STATIC triplet (x86-windows-static-md), not the default dynamic
+# x86-windows: OpenCPN plugins ship as a single .dll with no companion
+# runtime files, so wxWidgets/curl must be linked directly into the plugin
+# rather than pulled in as separate vcpkg-built DLLs that will never exist
+# next to opencpn.exe - a missing dependent DLL at LoadLibrary time is a
+# very plausible cause of the generic "not compatible ... will be
+# uninstalled" message. The "-md" suffix keeps the dynamic CRT (/MD) to
+# match opencpn.exe's own runtime, since mixing static (/MT) and dynamic
+# (/MD) CRT allocators across a DLL boundary that passes wxString/std
+# containers by value is a classic source of heap corruption.
+$Triplet = "x86-windows-static-md"
 
 # ----------------------------------------------------------------------------
 # Install wxWidgets + curl via vcpkg
