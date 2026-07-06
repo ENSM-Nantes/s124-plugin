@@ -328,8 +328,34 @@ bool xmlpoints_pi::MouseEventHook(wxMouseEvent &event)
     int idx = m_layer->HitTest(event.GetX(), event.GetY(), nullptr);
     if (idx < 0) return false;
 
-    InfoDialog dlg(m_parent_window, m_layer->GetWarning(idx));
-    dlg.ShowModal();
+    // Don't pop the modal dialog synchronously from inside the mouse-down
+    // hook: the chart canvas hasn't seen the matching mouse-up yet, so it
+    // still believes the button is held down. Blocking the event loop here
+    // with ShowModal() swallows that mouse-up (it goes to the dialog
+    // instead), leaving the canvas stuck thinking it's panning once the
+    // dialog closes. Deferring the dialog until after the current event
+    // (and the mouse-up right behind it) has been dispatched lets the
+    // canvas finish its click/drag bookkeeping first.
+    wxWindow *parent = m_parent_window;
+    S124Warning warning = m_layer->GetWarning(idx);
+    parent->CallAfter([parent, warning]() {
+        InfoDialog dlg(parent, warning);
+        dlg.ShowModal();
+
+        // The click that dismisses the dialog (e.g. "Close") happens
+        // entirely inside the modal dialog, so its LeftUp never reaches
+        // the chart canvas. Once the dialog is destroyed and the canvas
+        // regains input focus, it can be left believing the left button
+        // is still down and start panning on the very next mouse move.
+        // Explicitly release any stale capture and feed the canvas a
+        // LeftUp so it ends whatever click/drag it thinks is in progress.
+        if (parent->HasCapture())
+            parent->ReleaseMouse();
+
+        wxMouseEvent up(wxEVT_LEFT_UP);
+        up.SetPosition(parent->ScreenToClient(wxGetMousePosition()));
+        parent->GetEventHandler()->ProcessEvent(up);
+    });
     return true;
 }
 
