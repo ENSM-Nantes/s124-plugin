@@ -7,13 +7,14 @@
     dependencies via vcpkg, configures the project with CMake + MSVC, builds
     a Release Win32 (x86) xmlpoints_pi.dll - matching the prebuilt opencpn.lib
     import library available for this plugin API version - and packages it
-    into a .zip.
+    into a .tar.gz (OpenCPN's plugin manager import expects a tarball, not a
+    .zip, on every platform including Windows).
 
 .PARAMETER Install
     Copy the built DLL into this user's OpenCPN plugin directory after build.
 
 .PARAMETER Clean
-    Remove the build/ and package/ directories (and the .zip) before building.
+    Remove the build/ and package/ directories (and the .tar.gz) before building.
 
 .PARAMETER VcpkgRoot
     Path to an existing vcpkg checkout. If omitted, the script looks for
@@ -54,7 +55,7 @@ $ScriptDir   = $PSScriptRoot
 $PluginName  = "xmlpoints_pi"
 $BuildDir    = Join-Path $env:TEMP "${PluginName}_build"
 $PackageDir  = Join-Path $env:TEMP "${PluginName}_package"
-$ZipPath     = Join-Path $ScriptDir "${PluginName}_windows.zip"
+$TarballPath = Join-Path $ScriptDir "${PluginName}_windows.tar.gz"
 
 # ----------------------------------------------------------------------------
 # Logging helpers
@@ -70,7 +71,7 @@ if ($Clean) {
     Info "Cleaning build artefacts..."
     Remove-Item -Recurse -Force $BuildDir   -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $PackageDir -ErrorAction SilentlyContinue
-    Remove-Item -Force $ZipPath             -ErrorAction SilentlyContinue
+    Remove-Item -Force $TarballPath          -ErrorAction SilentlyContinue
 }
 
 # ----------------------------------------------------------------------------
@@ -260,12 +261,19 @@ $OcpnTarget = "MSVC-${Arch}"
 Info "Package metadata: target=$OcpnTarget"
 
 # ----------------------------------------------------------------------------
-# Step 5 - Create .zip
+# Step 5 - Create .tar.gz
 # ----------------------------------------------------------------------------
-Info "=== Step 5: Creating ${PluginName}_windows.zip ==="
-Remove-Item -Force $ZipPath -ErrorAction SilentlyContinue
-Compress-Archive -Path "$PackageDir\*" -DestinationPath $ZipPath
-Info "Package created: $ZipPath"
+Info "=== Step 5: Creating ${PluginName}_windows.tar.gz ==="
+if (-not (Test-Command "tar")) {
+    Die ("tar.exe not found in PATH. It ships built-in with Windows 10 1803+/11 - " + `
+         "if it's missing, install bsdtar or 7-Zip and adjust this step.")
+}
+Remove-Item -Force $TarballPath -ErrorAction SilentlyContinue
+Push-Location $PackageDir
+tar -czf $TarballPath .
+Pop-Location
+if ($LASTEXITCODE -ne 0) { Die "tar failed to create the package archive. See output above." }
+Info "Package created: $TarballPath"
 
 # ----------------------------------------------------------------------------
 # Step 6 (optional) - Install directly for current user
@@ -274,7 +282,7 @@ if ($Install) {
     Info "=== Step 6: Installing plugin for current user ==="
     # Best-guess per-user plugin directory, analogous to ~/.local/lib/opencpn
     # on Linux. Verify this matches your OpenCPN install - if in doubt, use
-    # Options -> Plugins -> Import plugin... with the .zip instead.
+    # Options -> Plugins -> Import plugin... with the .tar.gz instead.
     $UserPluginDir = "$env:LOCALAPPDATA\opencpn\plugins"
     New-Item -ItemType Directory -Force -Path $UserPluginDir | Out-Null
     Copy-Item $DllPath "$UserPluginDir\${PluginName}.dll" -Force
@@ -290,13 +298,13 @@ Write-Host "  Build complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  DLL     : $DllPath"
-Write-Host "  Package : $ZipPath"
+Write-Host "  Package : $TarballPath"
 Write-Host ""
 Write-Host "HOW TO INSTALL IN OPENCPN:"
 Write-Host "  Option A - GUI import (recommended):"
 Write-Host "    1. Open OpenCPN."
 Write-Host "    2. Options -> Plugins -> (scroll to bottom) -> Import plugin..."
-Write-Host "    3. Select: $ZipPath"
+Write-Host "    3. Select: $TarballPath"
 Write-Host "    4. RESTART OpenCPN completely - the plugin only appears after restart."
 Write-Host ""
 Write-Host "  Option B - direct user install (no GUI needed):"
