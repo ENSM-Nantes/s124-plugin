@@ -18,9 +18,14 @@ struct S124Warning {
     wxString seriesName;
     int      warningType       = 0;
     int      warningTypeDetail = 0;
+    wxString warningCategory;   // navwarnTypeGeneral label, e.g. "Special Operations"
+    wxString warningSubject;    // navwarnTypeDetails label, e.g. "Sea Trials"
     wxString publicationTime;
     wxString cancellationDate;
-    wxString headerText;
+    wxString effectiveStart;    // fixedDateRange start (date + time of day)
+    wxString effectiveEnd;      // fixedDateRange end (date + time of day)
+    wxString areaText;          // generalArea / locality names
+    wxString warningText;       // NavwarnPart warningInformation/information/text
     wxString language;
     std::vector<S124Geometry> geometries;
 

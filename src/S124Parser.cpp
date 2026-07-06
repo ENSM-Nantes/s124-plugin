@@ -202,22 +202,23 @@ void S124Parser::ExtractNavwarn(wxXmlNode *node,
                 mc = mc->GetNext();
             }
         } else if (ln == wxT("navwarnTypeGeneral")) {
-            // code attribute carries the numeric category
+            // code attribute carries the numeric category; element text is its label
             wxString code = c->GetAttribute(wxT("code"));
             long v = 0; code.ToLong(&v); w.warningTypeDetail = (int)v;
+            w.warningCategory = c->GetNodeContent();
         } else if (ln == wxT("publicationTime")) {
             w.publicationTime = c->GetNodeContent();
         } else if (ln == wxT("cancellationDate")) {
             w.cancellationDate = c->GetNodeContent();
         } else if (ln == wxT("generalArea") || ln == wxT("locality")) {
-            // Build headerText from area/locality names
+            // Build areaText from area/locality names
             wxXmlNode *ln_node = FindChild(c, wxT("locationName"));
             if (ln_node) {
                 wxXmlNode *txt = FindChild(ln_node, wxT("text"));
                 wxXmlNode *lang = FindChild(ln_node, wxT("language"));
                 if (txt) {
-                    if (!w.headerText.IsEmpty()) w.headerText += wxT(" / ");
-                    w.headerText += txt->GetNodeContent();
+                    if (!w.areaText.IsEmpty()) w.areaText += wxT(" / ");
+                    w.areaText += txt->GetNodeContent();
                 }
                 if (lang && w.language.IsEmpty())
                     w.language = lang->GetNodeContent();
@@ -251,8 +252,21 @@ bool S124Parser::ParseDoc(wxXmlDocument &doc,
     struct PartData {
         std::vector<S124Geometry> geoms;
         wxString preambleId;
+        wxString warningText;
+        wxString warningSubject;
+        wxString effectiveStart;
+        wxString effectiveEnd;
+        wxString language;
     };
     std::vector<PartData> parts;
+
+    // dateStart/dateEnd hold an S100:date child; fall back to raw content
+    // for datasets that put the date directly on the element.
+    auto readDateBound = [&](wxXmlNode *bound) -> wxString {
+        if (!bound) return wxEmptyString;
+        wxXmlNode *dateN = FindChild(bound, wxT("date"));
+        return (dateN ? dateN : bound)->GetNodeContent();
+    };
 
     std::function<void(wxXmlNode*)> walk = [&](wxXmlNode *n) {
         while (n) {
@@ -267,15 +281,37 @@ bool S124Parser::ParseDoc(wxXmlDocument &doc,
                 } else if (ln == wxT("NavwarnPart")) {
                     PartData pd;
                     ExtractNwPartGeoms(n, pd.geoms);
-                    // find the header reference that points back to the preamble
+                    // find the header reference that points back to the preamble,
+                    // plus the actual warning message content carried by this part
                     wxXmlNode *c = n->GetChildren();
                     while (c) {
-                        if (c->GetType() == wxXML_ELEMENT_NODE &&
-                            LocalName(c->GetName()) == wxT("header")) {
-                            wxString href = c->GetAttribute(wxT("xlink:href"));
-                            if (href.IsEmpty()) href = c->GetAttribute(wxT("href"));
-                            if (href.StartsWith(wxT("#"))) href = href.Mid(1);
-                            pd.preambleId = href;
+                        if (c->GetType() == wxXML_ELEMENT_NODE) {
+                            wxString cln = LocalName(c->GetName());
+                            if (cln == wxT("header")) {
+                                wxString href = c->GetAttribute(wxT("xlink:href"));
+                                if (href.IsEmpty()) href = c->GetAttribute(wxT("href"));
+                                if (href.StartsWith(wxT("#"))) href = href.Mid(1);
+                                pd.preambleId = href;
+                            } else if (cln == wxT("warningInformation")) {
+                                wxXmlNode *infoNode = FindChild(c, wxT("information"));
+                                if (infoNode) {
+                                    wxXmlNode *txt = FindChild(infoNode, wxT("text"));
+                                    if (txt) pd.warningText = txt->GetNodeContent();
+                                    wxXmlNode *lang = FindChild(infoNode, wxT("language"));
+                                    if (lang) pd.language = lang->GetNodeContent();
+                                }
+                                wxXmlNode *details = FindChild(c, wxT("navwarnTypeDetails"));
+                                if (details) pd.warningSubject = details->GetNodeContent();
+                            } else if (cln == wxT("fixedDateRange")) {
+                                wxString start = readDateBound(FindChild(c, wxT("dateStart")));
+                                wxString end   = readDateBound(FindChild(c, wxT("dateEnd")));
+                                wxXmlNode *tStart = FindChild(c, wxT("timeOfDayStart"));
+                                wxXmlNode *tEnd   = FindChild(c, wxT("timeOfDayEnd"));
+                                if (tStart) start += wxT(" ") + tStart->GetNodeContent();
+                                if (tEnd)   end   += wxT(" ") + tEnd->GetNodeContent();
+                                pd.effectiveStart = start;
+                                pd.effectiveEnd   = end;
+                            }
                         }
                         c = c->GetNext();
                     }
@@ -289,12 +325,26 @@ bool S124Parser::ParseDoc(wxXmlDocument &doc,
     };
     walk(root->GetChildren());
 
-    // Pass 2: attach part geometries to their preamble warning
+    // Pass 2: attach part geometries and message content to their preamble warning
     for (auto &pd : parts) {
         auto it = preambles.find(pd.preambleId);
-        if (it != preambles.end())
-            for (auto &g : pd.geoms)
-                it->second.geometries.push_back(g);
+        if (it == preambles.end()) continue;
+        S124Warning &w = it->second;
+
+        for (auto &g : pd.geoms)
+            w.geometries.push_back(g);
+
+        if (!pd.warningText.IsEmpty()) {
+            if (!w.warningText.IsEmpty()) w.warningText += wxT("\n\n");
+            w.warningText += pd.warningText;
+        }
+        if (!pd.warningSubject.IsEmpty()) {
+            if (!w.warningSubject.IsEmpty()) w.warningSubject += wxT(" / ");
+            w.warningSubject += pd.warningSubject;
+        }
+        if (w.effectiveStart.IsEmpty()) w.effectiveStart = pd.effectiveStart;
+        if (w.effectiveEnd.IsEmpty())   w.effectiveEnd   = pd.effectiveEnd;
+        if (w.language.IsEmpty())       w.language       = pd.language;
     }
 
     for (auto &kv : preambles) {

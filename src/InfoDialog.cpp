@@ -44,7 +44,25 @@ InfoDialog::InfoDialog(wxWindow *parent, const S124Warning &w)
         top->Add(new wxStaticLine(this), 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
     }
 
+    wxString category = w.warningCategory;
+    if (!w.warningSubject.IsEmpty()) {
+        if (!category.IsEmpty()) category += wxT(" – ");
+        category += w.warningSubject;
+    }
+
+    wxString effective;
+    if (!w.effectiveStart.IsEmpty() || !w.effectiveEnd.IsEmpty()) {
+        effective = w.effectiveStart;
+        if (!w.effectiveEnd.IsEmpty()) {
+            if (!effective.IsEmpty()) effective += wxT("  →  ");
+            effective += w.effectiveEnd;
+        }
+    }
+
     addMeta(_("Type:"),        w.warningTypeLabel());
+    addMeta(_("Category:"),    category);
+    addMeta(_("Area:"),        w.areaText);
+    addMeta(_("Effective:"),   effective);
     addMeta(_("Published:"),   w.publicationTime);
     addMeta(_("Cancelled:"),   w.cancellationDate);
     addMeta(_("Language:"),    w.language);
@@ -62,7 +80,7 @@ InfoDialog::InfoDialog(wxWindow *parent, const S124Warning &w)
 
     wxTextCtrl *txt = new wxTextCtrl(
         this, wxID_ANY,
-        w.headerText.IsEmpty() ? _("(no text)") : w.headerText,
+        w.warningText.IsEmpty() ? _("(no text)") : w.warningText,
         wxDefaultPosition, wxSize(-1, 140),
         wxTE_MULTILINE | wxTE_READONLY | wxTE_WORDWRAP);
     top->Add(txt, 1, wxALL | wxEXPAND, 10);
