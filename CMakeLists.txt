@@ -47,6 +47,7 @@ set(SOURCES
     src/SecomClient.cpp
     src/SecomDialog.cpp
     src/InfoDialog.cpp
+    src/ToolbarMenuDialog.cpp
 )
 
 add_library(xmlpoints_pi SHARED ${SOURCES})

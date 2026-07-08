@@ -3,23 +3,14 @@
 #include "SecomDialog.h"
 #include "SecomClient.h"
 #include "S124Parser.h"
+#include "ToolbarMenuDialog.h"
 #include <wx/filedlg.h>
 #include <wx/dirdlg.h>
 #include <wx/dir.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
-#include <wx/menu.h>
 #include <wx/region.h>
 #include <cstring>
-
-// Menu IDs
-enum {
-    ID_OPEN_FILE   = wxID_HIGHEST + 1,
-    ID_OPEN_FOLDER,
-    ID_SECOM_CFG,
-    ID_SECOM_REFRESH,
-    ID_CLEAR
-};
 
 extern "C" DECL_EXP opencpn_plugin *create_pi(void *ppimgr) { return new xmlpoints_pi(ppimgr); }
 extern "C" DECL_EXP void destroy_pi(opencpn_plugin *p) { delete p; }
@@ -138,39 +129,24 @@ wxString xmlpoints_pi::GetLongDescription()
     );
 }
 
-// ── toolbar callback → popup menu ─────────────────────────────────────────────
+// ── toolbar callback → action dialog ──────────────────────────────────────────
 
 void xmlpoints_pi::OnToolbarToolCallback(int /*id*/)
 {
-    // Deferred for the same reason as the InfoDialog in MouseEventHook:
-    // PopupMenu() called synchronously from inside the toolbar button's own
-    // click handling races that same click's mouse-up, which on Windows gets
-    // delivered to the freshly-opened menu and instantly dismisses it (the
-    // menu flashes and disappears). CallAfter() lets the toolbar finish
-    // processing this click before the menu opens.
-    m_parent_window->CallAfter([this]() {
-        wxMenu menu;
-        menu.Append(ID_OPEN_FILE,   _("Open local S-124 file…"));
-        menu.Append(ID_OPEN_FOLDER, _("Open S-124 folder…"));
-        menu.Append(ID_SECOM_CFG,   _("Connect to SECOM…"));
-        menu.AppendSeparator();
-        wxMenuItem *refreshItem =
-            menu.Append(ID_SECOM_REFRESH, _("Refresh from SECOM"));
-        refreshItem->Enable(!m_secomCfg.baseUrl.IsEmpty());
-        menu.AppendSeparator();
-        menu.Append(ID_CLEAR, _("Clear all warnings"));
+    ToolbarMenuDialog dlg(m_parent_window, !m_secomCfg.baseUrl.IsEmpty());
+    if (dlg.ShowModal() != wxID_OK) return;
 
-        menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnOpenLocalFile();    }, ID_OPEN_FILE);
-        menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnOpenFolder();       }, ID_OPEN_FOLDER);
-        menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnOpenSecomDialog();  }, ID_SECOM_CFG);
-        menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) { OnRefreshSecom();     }, ID_SECOM_REFRESH);
-        menu.Bind(wxEVT_MENU, [this](wxCommandEvent &) {
+    switch (dlg.GetAction()) {
+        case ToolbarMenuDialog::ACTION_OPEN_FILE:     OnOpenLocalFile();   break;
+        case ToolbarMenuDialog::ACTION_OPEN_FOLDER:   OnOpenFolder();      break;
+        case ToolbarMenuDialog::ACTION_SECOM_CFG:     OnOpenSecomDialog(); break;
+        case ToolbarMenuDialog::ACTION_SECOM_REFRESH: OnRefreshSecom();    break;
+        case ToolbarMenuDialog::ACTION_CLEAR:
             m_layer->Clear();
             RequestRefresh(m_parent_window);
-        }, ID_CLEAR);
-
-        m_parent_window->PopupMenu(&menu);
-    });
+            break;
+        default: break;
+    }
 }
 
 // ── source handlers ───────────────────────────────────────────────────────────
