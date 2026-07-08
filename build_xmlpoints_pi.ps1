@@ -182,14 +182,32 @@ $VcpkgToolchain = "$VcpkgRoot\scripts\buildsystems\vcpkg.cmake"
 $WxVersion = "3.2.9"
 $WxRoot = "$env:USERPROFILE\opencpn-sdk\wxWidgets-$WxVersion"
 
+# 7-Zip's own installer does NOT add 7z.exe to PATH (even installed via
+# winget), so a plain Test-Command("7z") check is not enough - fall back to
+# its default install locations before giving up.
+function Find-7z {
+    if (Test-Command "7z") { return "7z" }
+    $candidates = @(
+        "$env:ProgramFiles\7-Zip\7z.exe",
+        "${env:ProgramFiles(x86)}\7-Zip\7z.exe"
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) { return $c }
+    }
+    return $null
+}
+
 function Find-OrDownload-WxWidgets {
     if (Test-Path "$WxRoot\include\wx\wx.h") {
         return $WxRoot
     }
 
-    if (-not (Test-Command "7z")) {
-        Die ("7z.exe not found in PATH - required to unpack wxWidgets' .7z release archives.`n" + `
-             "Install it (winget install 7zip.7zip) and re-run.")
+    $SevenZip = Find-7z
+    if (-not $SevenZip) {
+        Die ("7z.exe not found in PATH or in C:\Program Files\7-Zip\ - required to unpack`n" + `
+             "wxWidgets' .7z release archives. Install it (winget install 7zip.7zip), then" + `
+             "re-run - a new terminal is not required, this script also checks the default" + `
+             "7-Zip install location directly.")
     }
 
     Warn "wxWidgets $WxVersion prebuilt binaries not found locally. Downloading from wxWidgets/wxWidgets ..."
@@ -210,7 +228,7 @@ function Find-OrDownload-WxWidgets {
     foreach ($archive in $archives) {
         $out = Join-Path $dlDir $archive
         Invoke-WebRequest -Uri "$base/$archive" -OutFile $out
-        & 7z x -y "-o$WxRoot" $out | Out-Null
+        & $SevenZip x -y "-o$WxRoot" $out | Out-Null
         if ($LASTEXITCODE -ne 0) { Die "Failed to extract $archive into $WxRoot." }
     }
 
