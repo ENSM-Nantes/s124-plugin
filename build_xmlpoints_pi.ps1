@@ -143,6 +143,18 @@ Info "Using vcpkg at: $VcpkgRoot"
 # corruption.
 $Triplet = "x86-windows-static-md"
 
+# An earlier version of this script did "vcpkg install wxwidgets:...". If
+# that ever ran on this machine, vcpkg's wxwidgets port is still sitting in
+# installed\$Triplet\ along with its share\wxwidgets\vcpkg-cmake-wrapper.cmake
+# - and since the vcpkg toolchain file below is still needed for curl, that
+# wrapper silently HIJACKS find_package(wxWidgets) in CMakeLists.txt ahead of
+# CMake's own module, ignoring -DwxWidgets_ROOT_DIR entirely and trying to
+# resolve vcpkg's own (wrong-version) wx instead - surfacing as a confusing
+# "Could not find WX_base" error. Remove it so find_package falls through to
+# CMake's real FindwxWidgets module, which is pointed at the wxWidgets.org
+# binaries below. Best-effort: fine if it was never installed.
+& "$VcpkgRoot\vcpkg.exe" remove "wxwidgets:${Triplet}" 2>$null | Out-Null
+
 # ----------------------------------------------------------------------------
 # Install curl via vcpkg
 # ----------------------------------------------------------------------------
