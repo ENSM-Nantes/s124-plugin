@@ -4,11 +4,13 @@
 
 .DESCRIPTION
     Windows counterpart to build_xmlpoints_pi.sh. Installs/locates build
-    dependencies via vcpkg, configures the project with CMake + MSVC, builds
-    a Release Win32 (x86) xmlpoints_pi.dll - matching the prebuilt opencpn.lib
-    import library available for this plugin API version - and packages it
-    into a .tar.gz (OpenCPN's plugin manager import expects a tarball, not a
-    .zip, on every platform including Windows).
+    dependencies (curl via vcpkg, wxWidgets via wxWidgets.org's own prebuilt
+    Windows binaries - see the wxWidgets section below for why NOT vcpkg),
+    configures the project with CMake + MSVC, builds a Release Win32 (x86)
+    xmlpoints_pi.dll - matching the prebuilt opencpn.lib import library
+    available for this plugin API version - and packages it into a .tar.gz
+    (OpenCPN's plugin manager import expects a tarball, not a .zip, on every
+    platform including Windows).
 
 .PARAMETER Install
     Copy the built DLL into this user's OpenCPN plugin directory after build.
@@ -27,10 +29,10 @@
 .NOTES
     IMPORTANT: this script has not been run end-to-end on a real Windows
     machine (it was written/reviewed from a Linux session). Treat the first
-    run as a shakedown: read the step output, and if vcpkg's wxWidgets
-    feature names or your OpenCPN install layout differ from what's assumed
-    below, adjust the marked spots rather than assuming the script is wrong
-    wholesale.
+    run as a shakedown: read the step output, and if the wxWidgets version
+    ($WxVersion below) or your OpenCPN install layout differ from what's
+    assumed below, adjust the marked spots rather than assuming the script
+    is wrong wholesale.
 
 .EXAMPLE
     .\build_xmlpoints_pi.ps1
@@ -130,34 +132,96 @@ Info "Using vcpkg at: $VcpkgRoot"
 # targets - a DLL's bitness must match the process that loads it, so the
 # whole toolchain (vcpkg triplet, generator platform) targets x86 throughout.
 #
-# Use a STATIC triplet (x86-windows-static-md), not the default dynamic
-# x86-windows: OpenCPN plugins ship as a single .dll with no companion
-# runtime files, so wxWidgets/curl must be linked directly into the plugin
-# rather than pulled in as separate vcpkg-built DLLs that will never exist
-# next to opencpn.exe - a missing dependent DLL at LoadLibrary time is a
-# very plausible cause of the generic "not compatible ... will be
-# uninstalled" message. The "-md" suffix keeps the dynamic CRT (/MD) to
-# match opencpn.exe's own runtime, since mixing static (/MT) and dynamic
-# (/MD) CRT allocators across a DLL boundary that passes wxString/std
-# containers by value is a classic source of heap corruption.
+# Use a STATIC triplet (x86-windows-static-md) for curl only (wxWidgets is
+# NOT sourced from vcpkg - see the wxWidgets section below): OpenCPN plugins
+# ship as a single .dll with no companion runtime files, so curl must be
+# linked directly into the plugin rather than pulled in as a separate
+# vcpkg-built DLL that will never exist next to opencpn.exe. The "-md" suffix
+# keeps the dynamic CRT (/MD) to match opencpn.exe's own runtime, since
+# mixing static (/MT) and dynamic (/MD) CRT allocators across a DLL boundary
+# that passes wxString/std containers by value is a classic source of heap
+# corruption.
 $Triplet = "x86-windows-static-md"
 
 # ----------------------------------------------------------------------------
-# Install wxWidgets + curl via vcpkg
+# Install curl via vcpkg
 # ----------------------------------------------------------------------------
-# NOTE: "opengl" is vcpkg's feature flag for wxGLCanvas support (needed for
-# RenderGLOverlay). If a future vcpkg release renames/removes it, run
-# `& "$VcpkgRoot\vcpkg.exe" search wxwidgets` to see current feature names
-# and adjust the line below.
-Info "=== Step 1b: Installing wxWidgets + curl via vcpkg (this can take a while the first time) ==="
-& "$VcpkgRoot\vcpkg.exe" install "wxwidgets[opengl]:${Triplet}" "curl:${Triplet}"
-if ($LASTEXITCODE -ne 0) {
-    Warn "vcpkg install with the 'opengl' feature failed - retrying with default features only."
-    & "$VcpkgRoot\vcpkg.exe" install "wxwidgets:${Triplet}" "curl:${Triplet}"
-    if ($LASTEXITCODE -ne 0) { Die "vcpkg failed to install wxwidgets/curl. See output above." }
-}
+Info "=== Step 1b: Installing curl via vcpkg (this can take a while the first time) ==="
+& "$VcpkgRoot\vcpkg.exe" install "curl:${Triplet}"
+if ($LASTEXITCODE -ne 0) { Die "vcpkg failed to install curl. See output above." }
 
 $VcpkgToolchain = "$VcpkgRoot\scripts\buildsystems\vcpkg.cmake"
+
+# ----------------------------------------------------------------------------
+# wxWidgets: download wxWidgets.org's own prebuilt Windows binaries - NOT vcpkg
+# ----------------------------------------------------------------------------
+# OpenCPN's plugin loader (plugin_loader.cpp) decides whether a Windows
+# plugin DLL is "compatible" by scanning its PE import table for a DLL name
+# containing "wxmsw" + "_core_" and checking whether that name is a substring
+# match against the wxWidgets core DLL the running opencpn.exe process
+# already has loaded (e.g. "wxmsw32u_core_vc14x.dll"). This is a literal
+# filename check, not a real ABI/version probe - so the plugin must
+# dynamically import a wx build with that *exact* DLL name, or the loader
+# logs "Plugin is compatible: false" and OpenCPN silently uninstalls it (the
+# generic "encountered errors during startup ... will be uninstalled"
+# message). vcpkg's wxwidgets port uses its own DLL naming scheme regardless
+# of static/dynamic triplet, so building against it - as earlier versions of
+# this script did - can never satisfy that check.
+#
+# The fix is to build against the same official wxWidgets.org Windows
+# binaries OpenCPN itself ships with (see OpenCPN/OpenCPN's
+# buildwin/win_deps.bat for the upstream equivalent of this step), which
+# produce the "lib\vc14x_dll" layout CMake's FindwxWidgets module already
+# knows how to auto-detect via wxWidgets_ROOT_DIR - no CMakeLists.txt changes
+# needed.
+#
+# $WxVersion MUST match the wxWidgets version OpenCPN itself was built
+# against - check OpenCPN's log (the "wxWidgets version: wxWidgets X.Y.Z"
+# line near the top after a restart) or Help -> About, and adjust below if
+# it differs from what's currently set.
+$WxVersion = "3.2.9"
+$WxRoot = "$env:USERPROFILE\opencpn-sdk\wxWidgets-$WxVersion"
+
+function Find-OrDownload-WxWidgets {
+    if (Test-Path "$WxRoot\include\wx\wx.h") {
+        return $WxRoot
+    }
+
+    if (-not (Test-Command "7z")) {
+        Die ("7z.exe not found in PATH - required to unpack wxWidgets' .7z release archives.`n" + `
+             "Install it (winget install 7zip.7zip) and re-run.")
+    }
+
+    Warn "wxWidgets $WxVersion prebuilt binaries not found locally. Downloading from wxWidgets/wxWidgets ..."
+    New-Item -ItemType Directory -Force -Path $WxRoot | Out-Null
+    $dlDir = Join-Path $env:TEMP "wxWidgets-$WxVersion-dl"
+    New-Item -ItemType Directory -Force -Path $dlDir | Out-Null
+
+    # Three archives, unpacked on top of each other into the same root:
+    # headers (platform-independent), Dev (import .lib stubs + headers
+    # config needed to compile against the DLLs), ReleaseDLL (the actual
+    # runtime DLLs, e.g. wxmsw32u_core_vc14x.dll).
+    $base = "https://github.com/wxWidgets/wxWidgets/releases/download/v$WxVersion"
+    $archives = @(
+        "wxWidgets-$WxVersion-headers.7z",
+        "wxMSW-${WxVersion}_vc14x_Dev.7z",
+        "wxMSW-${WxVersion}_vc14x_ReleaseDLL.7z"
+    )
+    foreach ($archive in $archives) {
+        $out = Join-Path $dlDir $archive
+        Invoke-WebRequest -Uri "$base/$archive" -OutFile $out
+        & 7z x -y "-o$WxRoot" $out | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "Failed to extract $archive into $WxRoot." }
+    }
+
+    if (-not (Test-Path "$WxRoot\include\wx\wx.h")) {
+        Die "Failed to set up wxWidgets $WxVersion at $WxRoot - check the download/extract output above."
+    }
+    return $WxRoot
+}
+
+$WxRoot = Find-OrDownload-WxWidgets
+Info "wxWidgets: $WxRoot"
 
 # ----------------------------------------------------------------------------
 # Locate or download the OpenCPN plugin API package (header + import lib)
@@ -221,10 +285,15 @@ Info "=== Step 2: Configuring with CMake ($Generator, Win32) ==="
 Remove-Item -Recurse -Force $BuildDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
 
+# wxWidgets_ROOT_DIR points CMake's FindwxWidgets module at the
+# wxWidgets.org binaries downloaded above (see the wxWidgets section in
+# Step 1b) instead of anything vcpkg knows about; the vcpkg toolchain file
+# below is still needed for curl.
 cmake -S $ScriptDir -B $BuildDir `
     -G $Generator -A Win32 `
     -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
     -DVCPKG_TARGET_TRIPLET="$Triplet" `
+    -DwxWidgets_ROOT_DIR="$WxRoot" `
     -DOPENCPN_INCLUDE_DIR="$($OcpnApi.Include)" `
     -DOPENCPN_IMPORT_LIB="$($OcpnApi.Lib)"
 if ($LASTEXITCODE -ne 0) { Die "CMake configure failed. See output above." }
@@ -334,8 +403,10 @@ Write-Host ""
 Write-Host "  TROUBLESHOOTING:"
 Write-Host "    - If OpenCPN doesn't load the plugin, check its log (Help -> About -> Logfile,"
 Write-Host "      or %LOCALAPPDATA%\opencpn\opencpn.log) for xmlpoints/DLL load errors."
-Write-Host "    - A load failure is very often a wxWidgets ABI mismatch: the wxWidgets version"
-Write-Host "      vcpkg installed here must match what your OpenCPN.exe was itself built"
-Write-Host "      against. If it won't load, check OpenCPN's About box for its wx version and"
-Write-Host "      pin vcpkg to a matching wxwidgets version (vcpkg install wxwidgets --version=...)."
+Write-Host "    - Look for 'Checking plugin compatibility: ...xmlpoints_pi.dll' in that log."
+Write-Host "      If the next line is NOT 'Found wxWidgets core DLL: ...wxmsw32u_core_vc14x.dll',"
+Write-Host "      OpenCPN will mark it 'Plugin is compatible: false' and silently uninstall it."
+Write-Host "      That means the `$WxVersion setting in this script ($WxVersion) no longer"
+Write-Host "      matches the wxWidgets version in OpenCPN's own log/About box - update it"
+Write-Host "      and rebuild."
 Write-Host ""
