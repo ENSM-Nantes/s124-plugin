@@ -3,6 +3,15 @@ project(xmlpoints_pi VERSION 4.0.0)
 
 set(CMAKE_CXX_STANDARD 11)
 
+# The source files are UTF-8 (no BOM) and contain non-ASCII punctuation
+# (en dashes, ellipses, arrows, degree signs) inside translatable strings.
+# MSVC otherwise guesses the source/execution charset from the system
+# codepage and mangles those bytes; GCC/Clang already default to UTF-8,
+# so this is a no-op there.
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 find_package(wxWidgets REQUIRED COMPONENTS core base xml aui gl net)
 include(${wxWidgets_USE_FILE})
 
