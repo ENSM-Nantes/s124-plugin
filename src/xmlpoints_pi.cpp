@@ -21,8 +21,8 @@ enum {
     ID_CLEAR
 };
 
-extern "C" opencpn_plugin *create_pi(void *ppimgr) { return new xmlpoints_pi(ppimgr); }
-extern "C" void destroy_pi(opencpn_plugin *p) { delete p; }
+extern "C" DECL_EXP opencpn_plugin *create_pi(void *ppimgr) { return new xmlpoints_pi(ppimgr); }
+extern "C" DECL_EXP void destroy_pi(opencpn_plugin *p) { delete p; }
 
 // ── icon ───────────────────────────────────────────────────────────────────────
 // Warning-triangle icon: black-outlined amber triangle with an exclamation
