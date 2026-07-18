@@ -18,7 +18,7 @@ ToolbarMenuDialog::ToolbarMenuDialog(wxWindow *parent, bool secomConfigured)
 
     addButton(ACTION_OPEN_FILE,     _U("Open local S-124 file…"));
     addButton(ACTION_OPEN_FOLDER,   _U("Open S-124 folder…"));
-    addButton(ACTION_SECOM_CFG,     _U("Connect to SECOM…"));
+    addButton(ACTION_SECOM_CFG,     _U("SECOM connections…"));
     addButton(ACTION_SECOM_REFRESH, _("Refresh from SECOM"), secomConfigured);
     addButton(ACTION_CLEAR,         _("Clear all warnings"));
 

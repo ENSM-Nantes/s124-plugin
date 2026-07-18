@@ -3,6 +3,7 @@
 
 #include <wx/wx.h>
 #include <wx/fileconf.h>
+#include <vector>
 #include "ocpn_plugin.h"
 #include "PointsLayer.h"
 #include "SecomClient.h"
@@ -45,11 +46,18 @@ public:
     void LoadConfig();
     void SaveConfig();
 
+    // Invoked by the auto-refresh timer. Public so the wxTimer subclass that
+    // owns the actual timer (defined in xmlpoints_pi.cpp, outside the class)
+    // can call it.
+    void OnAutoRefreshTimer();
+
 private:
     void OnOpenLocalFile();
     void OnOpenFolder();
     void OnOpenSecomDialog();
     void OnRefreshSecom();
+    bool FetchAllSecom(std::vector<S124Warning> &combined, wxArrayString &errors);
+    void UpdateAutoRefreshTimer();
 
     int          m_toolbar_item_id;
     PointsLayer *m_layer;
@@ -57,7 +65,11 @@ private:
     wxBitmap     m_pluginBitmap;
 
     wxString    m_lastFilePath;
-    SecomConfig m_secomCfg;
+
+    std::vector<SecomConfig> m_secomConnections;
+    bool     m_autoRefreshEnabled;
+    int      m_autoRefreshMinutes;
+    wxTimer *m_refreshTimer;
 };
 
 #endif // XMLPOINTS_PI_H

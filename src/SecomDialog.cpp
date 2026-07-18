@@ -20,6 +20,9 @@ SecomDialog::SecomDialog(wxWindow *parent, const SecomConfig &cfg)
         top->Add(row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
     };
 
+    m_name = new wxTextCtrl(this, wxID_ANY, cfg.name);
+    addRow(_("Name:"), m_name);
+
     m_url = new wxTextCtrl(this, wxID_ANY, cfg.baseUrl);
     addRow(_("URL:"), m_url);
 
@@ -73,6 +76,7 @@ SecomDialog::SecomDialog(wxWindow *parent, const SecomConfig &cfg)
 SecomConfig SecomDialog::GetConfig() const
 {
     SecomConfig cfg;
+    cfg.name          = m_name->GetValue().Trim();
     cfg.baseUrl       = m_url->GetValue().Trim();
     cfg.dataReference = m_dataRef->GetValue().Trim();
     cfg.apiKey        = m_apiKey->GetValue();

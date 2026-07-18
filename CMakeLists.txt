@@ -55,6 +55,7 @@ set(SOURCES
     src/S124Parser.cpp
     src/SecomClient.cpp
     src/SecomDialog.cpp
+    src/SecomListDialog.cpp
     src/InfoDialog.cpp
     src/ToolbarMenuDialog.cpp
 )

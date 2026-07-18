@@ -1,7 +1,7 @@
 #include "xmlpoints_pi.h"
 #include "Utf8Text.h"
 #include "InfoDialog.h"
-#include "SecomDialog.h"
+#include "SecomListDialog.h"
 #include "SecomClient.h"
 #include "S124Parser.h"
 #include "ToolbarMenuDialog.h"
@@ -15,6 +15,21 @@
 
 extern "C" DECL_EXP opencpn_plugin *create_pi(void *ppimgr) { return new xmlpoints_pi(ppimgr); }
 extern "C" DECL_EXP void destroy_pi(opencpn_plugin *p) { delete p; }
+
+namespace {
+// Routes wxTimer notifications to the plugin. A plain member wxTimer can't do
+// this itself because xmlpoints_pi (an opencpn_plugin_116) is not a
+// wxEvtHandler, so there is no window to bind wxEVT_TIMER to.
+class SecomRefreshTimer : public wxTimer
+{
+public:
+    explicit SecomRefreshTimer(xmlpoints_pi *owner) : m_owner(owner) {}
+    void Notify() override { m_owner->OnAutoRefreshTimer(); }
+
+private:
+    xmlpoints_pi *m_owner;
+};
+} // namespace
 
 // ── icon ───────────────────────────────────────────────────────────────────────
 // Warning-triangle icon: black-outlined amber triangle with an exclamation
@@ -70,12 +85,16 @@ xmlpoints_pi::xmlpoints_pi(void *ppimgr)
     , m_layer(nullptr)
     , m_parent_window(nullptr)
     , m_pluginBitmap(MakeWarningTriangleBitmap())
+    , m_autoRefreshEnabled(false)
+    , m_autoRefreshMinutes(15)
+    , m_refreshTimer(nullptr)
 {
     m_layer = new PointsLayer();
 }
 
 xmlpoints_pi::~xmlpoints_pi()
 {
+    delete m_refreshTimer;
     delete m_layer;
 }
 
@@ -97,6 +116,8 @@ int xmlpoints_pi::Init(void)
             wxLogWarning("S-124: %s", m_layer->GetLastError());
     }
 
+    UpdateAutoRefreshTimer();
+
     return WANTS_OVERLAY_CALLBACK        |
            WANTS_OPENGL_OVERLAY_CALLBACK |
            WANTS_TOOLBAR_CALLBACK        |
@@ -112,6 +133,8 @@ wxBitmap *xmlpoints_pi::GetPlugInBitmap()
 
 bool xmlpoints_pi::DeInit(void)
 {
+    if (m_refreshTimer)
+        m_refreshTimer->Stop();
     SaveConfig();
     if (m_toolbar_item_id >= 0)
         RemovePlugInTool(m_toolbar_item_id);
@@ -134,7 +157,7 @@ wxString xmlpoints_pi::GetLongDescription()
 
 void xmlpoints_pi::OnToolbarToolCallback(int /*id*/)
 {
-    ToolbarMenuDialog dlg(m_parent_window, !m_secomCfg.baseUrl.IsEmpty());
+    ToolbarMenuDialog dlg(m_parent_window, !m_secomConnections.empty());
     if (dlg.ShowModal() != wxID_OK) return;
 
     switch (dlg.GetAction()) {
@@ -235,49 +258,104 @@ void xmlpoints_pi::OnOpenFolder()
 
 void xmlpoints_pi::OnOpenSecomDialog()
 {
-    SecomDialog dlg(m_parent_window, m_secomCfg);
+    SecomListDialog dlg(m_parent_window, m_secomConnections,
+                        m_autoRefreshEnabled, m_autoRefreshMinutes);
     if (dlg.ShowModal() != wxID_OK) return;
 
-    m_secomCfg = dlg.GetConfig();
+    m_secomConnections   = dlg.GetConnections();
+    m_autoRefreshEnabled = dlg.GetAutoRefreshEnabled();
+    m_autoRefreshMinutes = dlg.GetAutoRefreshMinutes();
     SaveConfig();
+    UpdateAutoRefreshTimer();
 
-    if (!m_secomCfg.baseUrl.IsEmpty())
+    if (!m_secomConnections.empty())
         OnRefreshSecom();
+}
+
+// Fetches every configured connection and concatenates the results. Returns
+// false (with 'errors' populated) if any connection failed; connections that
+// did succeed are still included in 'combined'.
+bool xmlpoints_pi::FetchAllSecom(std::vector<S124Warning> &combined, wxArrayString &errors)
+{
+    for (const auto &cfg : m_secomConnections) {
+        std::vector<S124Warning> warnings;
+        wxString err;
+        SecomClient client(cfg);
+
+        if (client.Fetch(warnings, err)) {
+            combined.insert(combined.end(), warnings.begin(), warnings.end());
+        } else {
+            wxString label = cfg.name.IsEmpty() ? cfg.baseUrl : cfg.name;
+            errors.Add(label + _U(": ") + err);
+        }
+    }
+    return errors.IsEmpty();
 }
 
 void xmlpoints_pi::OnRefreshSecom()
 {
-    if (m_secomCfg.baseUrl.IsEmpty()) {
-        wxMessageBox(_U("No SECOM endpoint configured.\n"
-                        "Use 'Connect to SECOM…' to set the URL."),
+    if (m_secomConnections.empty()) {
+        wxMessageBox(_U("No SECOM connections configured.\n"
+                        "Use 'SECOM connections…' to add one."),
                      _("S-124"), wxOK | wxICON_INFORMATION, m_parent_window);
         return;
     }
 
     wxProgressDialog progress(_U("S-124 – Fetching from SECOM"),
-                              _U("Connecting to SECOM endpoint…"),
+                              _U("Connecting to SECOM endpoint(s)…"),
                               100, m_parent_window,
                               wxPD_APP_MODAL | wxPD_AUTO_HIDE);
     progress.Pulse();
 
-    std::vector<S124Warning> warnings;
-    wxString err;
-    SecomClient client(m_secomCfg);
+    std::vector<S124Warning> combined;
+    wxArrayString errors;
+    FetchAllSecom(combined, errors);
 
-    if (!client.Fetch(warnings, err)) {
-        wxMessageBox(wxString::Format(_("SECOM fetch failed:\n%s"), err),
-                     _U("S-124 – SECOM Error"),
-                     wxOK | wxICON_ERROR, m_parent_window);
-        return;
-    }
-
-    m_layer->SetWarnings(warnings);
+    m_layer->SetWarnings(combined);
     RequestRefresh(m_parent_window);
 
-    wxMessageBox(
-        wxString::Format(_("Received %zu navigational warning(s) from SECOM."),
-                         warnings.size()),
-        _("S-124 Warnings"), wxOK | wxICON_INFORMATION, m_parent_window);
+    wxString msg = wxString::Format(
+        _("Received %zu navigational warning(s) from %zu SECOM connection(s)."),
+        combined.size(), m_secomConnections.size());
+    if (!errors.IsEmpty())
+        msg += _("\n\nErrors:\n") + wxJoin(errors, '\n');
+
+    wxMessageBox(msg, _U("S-124 – SECOM"),
+                 wxOK | (errors.IsEmpty() ? wxICON_INFORMATION : wxICON_WARNING),
+                 m_parent_window);
+}
+
+// Timer-driven refresh: same fetch as the manual 'Refresh from SECOM' button,
+// but silent (no modal progress dialog or success popup) so it doesn't
+// interrupt the user every time the interval elapses. Failures are logged
+// rather than shown, for the same reason.
+void xmlpoints_pi::OnAutoRefreshTimer()
+{
+    if (m_secomConnections.empty()) return;
+
+    std::vector<S124Warning> combined;
+    wxArrayString errors;
+    FetchAllSecom(combined, errors);
+
+    m_layer->SetWarnings(combined);
+    RequestRefresh(m_parent_window);
+
+    if (!errors.IsEmpty())
+        wxLogWarning("S-124 SECOM auto-refresh: %s", wxJoin(errors, ';'));
+}
+
+void xmlpoints_pi::UpdateAutoRefreshTimer()
+{
+    if (m_refreshTimer) {
+        m_refreshTimer->Stop();
+        delete m_refreshTimer;
+        m_refreshTimer = nullptr;
+    }
+
+    if (m_autoRefreshEnabled && m_autoRefreshMinutes > 0 && !m_secomConnections.empty()) {
+        m_refreshTimer = new SecomRefreshTimer(this);
+        m_refreshTimer->Start(m_autoRefreshMinutes * 60 * 1000, wxTIMER_CONTINUOUS);
+    }
 }
 
 // ── rendering ─────────────────────────────────────────────────────────────────
@@ -351,18 +429,55 @@ void xmlpoints_pi::LoadConfig()
     wxFileConfig *cfg = GetOCPNConfigObject();
     if (!cfg) return;
     cfg->SetPath(_("/Plugins/S124Warnings"));
-    cfg->Read(_("LastFilePath"),    &m_lastFilePath,          wxEmptyString);
-    cfg->Read(_("SecomUrl"),        &m_secomCfg.baseUrl,      wxEmptyString);
-    cfg->Read(_("SecomDataRef"),    &m_secomCfg.dataReference, wxEmptyString);
-    cfg->Read(_("SecomApiKey"),     &m_secomCfg.apiKey,       wxEmptyString);
-    cfg->Read(_("SecomCertFile"),   &m_secomCfg.certFile,     wxEmptyString);
-    cfg->Read(_("SecomKeyFile"),    &m_secomCfg.keyFile,      wxEmptyString);
-    cfg->Read(_("SecomCaBundle"),   &m_secomCfg.caBundle,     wxEmptyString);
-    int verify = 1, timeout = 30;
-    cfg->Read(_("SecomSslVerify"), &verify,  1);
-    cfg->Read(_("SecomTimeout"),   &timeout, 30);
-    m_secomCfg.sslVerify  = (verify != 0);
-    m_secomCfg.timeoutSec = timeout;
+    cfg->Read(_("LastFilePath"), &m_lastFilePath, wxEmptyString);
+
+    m_secomConnections.clear();
+
+    int count = 0;
+    if (cfg->Read(_("SecomCount"), &count, 0) && count > 0) {
+        for (int i = 0; i < count; ++i) {
+            wxString prefix = wxString::Format(_("Secom%d"), i);
+            SecomConfig sc;
+            cfg->Read(prefix + _("Name"),      &sc.name,          wxEmptyString);
+            cfg->Read(prefix + _("Url"),       &sc.baseUrl,       wxEmptyString);
+            cfg->Read(prefix + _("DataRef"),   &sc.dataReference, wxEmptyString);
+            cfg->Read(prefix + _("ApiKey"),    &sc.apiKey,        wxEmptyString);
+            cfg->Read(prefix + _("CertFile"),  &sc.certFile,      wxEmptyString);
+            cfg->Read(prefix + _("KeyFile"),   &sc.keyFile,       wxEmptyString);
+            cfg->Read(prefix + _("CaBundle"),  &sc.caBundle,      wxEmptyString);
+            int verify = 1, timeout = 30;
+            cfg->Read(prefix + _("SslVerify"), &verify,  1);
+            cfg->Read(prefix + _("Timeout"),   &timeout, 30);
+            sc.sslVerify  = (verify != 0);
+            sc.timeoutSec = timeout;
+            m_secomConnections.push_back(sc);
+        }
+    } else {
+        // Migrate the pre-multi-connection single-endpoint config, if present.
+        wxString url;
+        cfg->Read(_("SecomUrl"), &url, wxEmptyString);
+        if (!url.IsEmpty()) {
+            SecomConfig sc;
+            sc.baseUrl = url;
+            cfg->Read(_("SecomDataRef"),  &sc.dataReference, wxEmptyString);
+            cfg->Read(_("SecomApiKey"),   &sc.apiKey,        wxEmptyString);
+            cfg->Read(_("SecomCertFile"), &sc.certFile,      wxEmptyString);
+            cfg->Read(_("SecomKeyFile"),  &sc.keyFile,       wxEmptyString);
+            cfg->Read(_("SecomCaBundle"), &sc.caBundle,      wxEmptyString);
+            int verify = 1, timeout = 30;
+            cfg->Read(_("SecomSslVerify"), &verify,  1);
+            cfg->Read(_("SecomTimeout"),   &timeout, 30);
+            sc.sslVerify  = (verify != 0);
+            sc.timeoutSec = timeout;
+            m_secomConnections.push_back(sc);
+        }
+    }
+
+    int autoRefresh = 0;
+    cfg->Read(_("SecomAutoRefresh"),       &autoRefresh,          0);
+    cfg->Read(_("SecomAutoRefreshMinutes"), &m_autoRefreshMinutes, 15);
+    m_autoRefreshEnabled = (autoRefresh != 0);
+    if (m_autoRefreshMinutes <= 0) m_autoRefreshMinutes = 15;
 }
 
 void xmlpoints_pi::SaveConfig()
@@ -370,14 +485,44 @@ void xmlpoints_pi::SaveConfig()
     wxFileConfig *cfg = GetOCPNConfigObject();
     if (!cfg) return;
     cfg->SetPath(_("/Plugins/S124Warnings"));
-    cfg->Write(_("LastFilePath"),   m_lastFilePath);
-    cfg->Write(_("SecomUrl"),       m_secomCfg.baseUrl);
-    cfg->Write(_("SecomDataRef"),   m_secomCfg.dataReference);
-    cfg->Write(_("SecomApiKey"),    m_secomCfg.apiKey);
-    cfg->Write(_("SecomCertFile"),  m_secomCfg.certFile);
-    cfg->Write(_("SecomKeyFile"),   m_secomCfg.keyFile);
-    cfg->Write(_("SecomCaBundle"),  m_secomCfg.caBundle);
-    cfg->Write(_("SecomSslVerify"), (int)m_secomCfg.sslVerify);
-    cfg->Write(_("SecomTimeout"),   m_secomCfg.timeoutSec);
+    cfg->Write(_("LastFilePath"), m_lastFilePath);
+
+    // Clear out any leftover entries from a previously longer list.
+    int oldCount = 0;
+    cfg->Read(_("SecomCount"), &oldCount, 0);
+    for (int i = (int)m_secomConnections.size(); i < oldCount; ++i) {
+        wxString prefix = wxString::Format(_("Secom%d"), i);
+        cfg->DeleteGroup(prefix);
+    }
+
+    cfg->Write(_("SecomCount"), (int)m_secomConnections.size());
+    for (size_t i = 0; i < m_secomConnections.size(); ++i) {
+        const SecomConfig &sc = m_secomConnections[i];
+        wxString prefix = wxString::Format(_("Secom%d"), (int)i);
+        cfg->Write(prefix + _("Name"),      sc.name);
+        cfg->Write(prefix + _("Url"),       sc.baseUrl);
+        cfg->Write(prefix + _("DataRef"),   sc.dataReference);
+        cfg->Write(prefix + _("ApiKey"),    sc.apiKey);
+        cfg->Write(prefix + _("CertFile"),  sc.certFile);
+        cfg->Write(prefix + _("KeyFile"),   sc.keyFile);
+        cfg->Write(prefix + _("CaBundle"),  sc.caBundle);
+        cfg->Write(prefix + _("SslVerify"), (int)sc.sslVerify);
+        cfg->Write(prefix + _("Timeout"),   sc.timeoutSec);
+    }
+
+    // Remove the legacy single-connection keys once migrated so they don't
+    // resurface if SecomCount is ever deleted.
+    cfg->DeleteEntry(_("SecomUrl"),       false);
+    cfg->DeleteEntry(_("SecomDataRef"),   false);
+    cfg->DeleteEntry(_("SecomApiKey"),    false);
+    cfg->DeleteEntry(_("SecomCertFile"),  false);
+    cfg->DeleteEntry(_("SecomKeyFile"),   false);
+    cfg->DeleteEntry(_("SecomCaBundle"),  false);
+    cfg->DeleteEntry(_("SecomSslVerify"), false);
+    cfg->DeleteEntry(_("SecomTimeout"),   false);
+
+    cfg->Write(_("SecomAutoRefresh"),        (int)m_autoRefreshEnabled);
+    cfg->Write(_("SecomAutoRefreshMinutes"), m_autoRefreshMinutes);
+
     cfg->Flush();
 }

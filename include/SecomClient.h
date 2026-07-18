@@ -6,6 +6,7 @@
 #include "S124Warning.h"
 
 struct SecomConfig {
+    wxString name;           // display label to tell connections apart
     wxString baseUrl;
     wxString dataReference;  // appended to URL for direct GET fallback
     wxString apiKey;         // Bearer token (Authorization header)

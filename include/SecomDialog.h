@@ -14,6 +14,7 @@ public:
     SecomConfig GetConfig() const;
 
 private:
+    wxTextCtrl     *m_name;
     wxTextCtrl     *m_url;
     wxTextCtrl     *m_dataRef;
     wxTextCtrl     *m_apiKey;
