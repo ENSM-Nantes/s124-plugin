@@ -1,4 +1,5 @@
 #include "xmlpoints_pi.h"
+#include "Utf8Text.h"
 #include "InfoDialog.h"
 #include "SecomDialog.h"
 #include "SecomClient.h"
@@ -167,7 +168,7 @@ void xmlpoints_pi::OnOpenLocalFile()
 
     if (!m_layer->LoadFromFile(m_lastFilePath)) {
         wxMessageBox(m_layer->GetLastError(),
-                     _("S-124 – Load Error"),
+                     _U("S-124 – Load Error"),
                      wxOK | wxICON_ERROR, m_parent_window);
     } else {
         size_t n = m_layer->GetWarningCount();
@@ -195,7 +196,7 @@ void xmlpoints_pi::OnOpenFolder()
     wxDir dir(folder);
     if (!dir.IsOpened()) {
         wxMessageBox(_("Could not open the selected folder."),
-                     _("S-124 – Error"), wxOK | wxICON_ERROR, m_parent_window);
+                     _U("S-124 – Error"), wxOK | wxICON_ERROR, m_parent_window);
         return;
     }
 
@@ -247,14 +248,14 @@ void xmlpoints_pi::OnOpenSecomDialog()
 void xmlpoints_pi::OnRefreshSecom()
 {
     if (m_secomCfg.baseUrl.IsEmpty()) {
-        wxMessageBox(_("No SECOM endpoint configured.\n"
-                       "Use 'Connect to SECOM…' to set the URL."),
+        wxMessageBox(_U("No SECOM endpoint configured.\n"
+                        "Use 'Connect to SECOM…' to set the URL."),
                      _("S-124"), wxOK | wxICON_INFORMATION, m_parent_window);
         return;
     }
 
-    wxProgressDialog progress(_("S-124 – Fetching from SECOM"),
-                              _("Connecting to SECOM endpoint…"),
+    wxProgressDialog progress(_U("S-124 – Fetching from SECOM"),
+                              _U("Connecting to SECOM endpoint…"),
                               100, m_parent_window,
                               wxPD_APP_MODAL | wxPD_AUTO_HIDE);
     progress.Pulse();
@@ -265,7 +266,7 @@ void xmlpoints_pi::OnRefreshSecom()
 
     if (!client.Fetch(warnings, err)) {
         wxMessageBox(wxString::Format(_("SECOM fetch failed:\n%s"), err),
-                     _("S-124 – SECOM Error"),
+                     _U("S-124 – SECOM Error"),
                      wxOK | wxICON_ERROR, m_parent_window);
         return;
     }

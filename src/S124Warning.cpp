@@ -1,4 +1,5 @@
 #include "S124Warning.h"
+#include "Utf8Text.h"
 
 void S124Warning::computeCentroid()
 {
@@ -21,10 +22,10 @@ wxString S124Warning::warningTypeLabel() const
         case 3:  return _("Sub-area");
         case 4:  return _("NAVAREA");
         case 5:  return _("No Warning");
-        case 6:  return _("Local – In-Force Bulletin");
-        case 7:  return _("Coastal – In-Force Bulletin");
-        case 8:  return _("Sub-area – In-Force Bulletin");
-        case 9:  return _("NAVAREA – In-Force Bulletin");
+        case 6:  return _U("Local – In-Force Bulletin");
+        case 7:  return _U("Coastal – In-Force Bulletin");
+        case 8:  return _U("Sub-area – In-Force Bulletin");
+        case 9:  return _U("NAVAREA – In-Force Bulletin");
         case 10: return _("SAR (HYDROLANT/HYDROPAC)");
         case 11: return _("Piracy Warning");
         case 12: return _("Tropical Storm");

@@ -1,5 +1,6 @@
 #include "SecomClient.h"
 #include "S124Parser.h"
+#include "Utf8Text.h"
 #include <wx/base64.h>
 #include <wx/log.h>
 #include <wx/mstream.h>
@@ -393,7 +394,7 @@ bool SecomClient::FetchViaDirect(std::vector<S124Warning> &out, wxString &err)
             _("Could not interpret the server response as S-124 GML.\n\n"
               "Server returned:\n%s%s"),
             snippet,
-            body.size() > 300 ? wxT("\n[…]") : wxT(""));
+            body.size() > 300 ? U8("\n[…]") : wxT(""));
         return false;
     }
     return S124Parser::ParseString(gml, out, err);

@@ -1,4 +1,5 @@
 #include "InfoDialog.h"
+#include "Utf8Text.h"
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/statline.h>
@@ -31,7 +32,7 @@ InfoDialog::InfoDialog(wxWindow *parent, const S124Warning &w)
         title = w.seriesName;
     if (w.warningNumber > 0) {
         if (!title.IsEmpty()) title += wxT(" / ");
-        if (w.year > 0) title += wxString::Format(wxT("%d – "), w.year);
+        if (w.year > 0) title += wxString::Format(U8("%d – "), w.year);
         title += wxString::Format(_("Warning #%d"), w.warningNumber);
     }
     if (!title.IsEmpty()) {
@@ -46,7 +47,7 @@ InfoDialog::InfoDialog(wxWindow *parent, const S124Warning &w)
 
     wxString category = w.warningCategory;
     if (!w.warningSubject.IsEmpty()) {
-        if (!category.IsEmpty()) category += wxT(" – ");
+        if (!category.IsEmpty()) category += U8(" – ");
         category += w.warningSubject;
     }
 
@@ -54,7 +55,7 @@ InfoDialog::InfoDialog(wxWindow *parent, const S124Warning &w)
     if (!w.effectiveStart.IsEmpty() || !w.effectiveEnd.IsEmpty()) {
         effective = w.effectiveStart;
         if (!w.effectiveEnd.IsEmpty()) {
-            if (!effective.IsEmpty()) effective += wxT("  →  ");
+            if (!effective.IsEmpty()) effective += U8("  →  ");
             effective += w.effectiveEnd;
         }
     }
@@ -69,7 +70,7 @@ InfoDialog::InfoDialog(wxWindow *parent, const S124Warning &w)
 
     // Position (centroid)
     if (w.centroidLat != 0.0 || w.centroidLon != 0.0) {
-        wxString pos = wxString::Format(wxT("%.5f°  %.5f°"),
+        wxString pos = wxString::Format(U8("%.5f°  %.5f°"),
                                         w.centroidLat, w.centroidLon);
         addMeta(_("Position:"), pos);
     }
