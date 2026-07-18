@@ -30,11 +30,11 @@ SecomListDialog::SecomListDialog(wxWindow *parent,
     listRow->Add(m_list, 1, wxEXPAND | wxALL, 10);
 
     wxBoxSizer *btnCol = new wxBoxSizer(wxVERTICAL);
-    wxButton *addBtn = new wxButton(this, wxID_ANY, _("Add…"));
+    wxButton *addBtn = new wxButton(this, wxID_ANY, _U("Add…"));
     addBtn->Bind(wxEVT_BUTTON, &SecomListDialog::OnAdd, this);
     btnCol->Add(addBtn, 0, wxEXPAND | wxBOTTOM, 6);
 
-    m_editBtn = new wxButton(this, wxID_ANY, _("Edit…"));
+    m_editBtn = new wxButton(this, wxID_ANY, _U("Edit…"));
     m_editBtn->Bind(wxEVT_BUTTON, &SecomListDialog::OnEdit, this);
     btnCol->Add(m_editBtn, 0, wxEXPAND | wxBOTTOM, 6);
 
