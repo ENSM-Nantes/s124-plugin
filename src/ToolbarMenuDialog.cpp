@@ -4,7 +4,7 @@
 #include <wx/button.h>
 
 ToolbarMenuDialog::ToolbarMenuDialog(wxWindow *parent, bool secomConfigured)
-    : wxDialog(parent, wxID_ANY, _("S-124 Warnings"),
+    : wxDialog(parent, wxID_ANY, _("S-124"),
                wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
 {
     wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
@@ -20,10 +20,17 @@ ToolbarMenuDialog::ToolbarMenuDialog(wxWindow *parent, bool secomConfigured)
     addButton(ACTION_OPEN_FOLDER,   _U("Open S-124 folder…"));
     addButton(ACTION_SECOM_CFG,     _U("SECOM connections…"));
     addButton(ACTION_SECOM_REFRESH, _("Refresh from SECOM"), secomConfigured);
+    addButton(ACTION_WARNING_COLORS, _U("Warning colors…"));
     addButton(ACTION_CLEAR,         _("Clear all warnings"));
 
     wxButton *cancel = new wxButton(this, wxID_CANCEL, _("Cancel"));
     top->Add(cancel, 0, wxEXPAND | wxALL, 10);
+
+    // Force a minimum width well past what the buttons alone need - on
+    // Windows a dialog sized tightly to narrow content ends up narrower
+    // than the title bar's own chrome (icon + system buttons), which
+    // truncates or hides the title text entirely.
+    top->SetMinSize(wxSize(280, -1));
 
     SetSizerAndFit(top);
     Centre();

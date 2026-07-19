@@ -20,7 +20,8 @@ public:
         ACTION_OPEN_FOLDER,
         ACTION_SECOM_CFG,
         ACTION_SECOM_REFRESH,
-        ACTION_CLEAR
+        ACTION_CLEAR,
+        ACTION_WARNING_COLORS
     };
 
     ToolbarMenuDialog(wxWindow *parent, bool secomConfigured);

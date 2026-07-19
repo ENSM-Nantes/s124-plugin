@@ -58,6 +58,7 @@ set(SOURCES
     src/SecomListDialog.cpp
     src/InfoDialog.cpp
     src/ToolbarMenuDialog.cpp
+    src/WarningColorDialog.cpp
 )
 
 add_library(xmlpoints_pi SHARED ${SOURCES})

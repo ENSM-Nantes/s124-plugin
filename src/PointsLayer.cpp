@@ -76,11 +76,11 @@ wxPoint PointsLayer::LatLonToScreen(double lat, double lon, PlugIn_ViewPort *vp)
 wxColour PointsLayer::WarningColor(int warningType) const
 {
     switch (warningType) {
-        case 4: case 9:  return wxColour(200,  30,  30);  // NAVAREA – deep red
-        case 3: case 8:  return wxColour(220,  80,  20);  // Sub-area – red-orange
-        case 2: case 7:  return wxColour(230, 130,   0);  // Coastal – orange
-        case 1: case 6:  return wxColour(200, 180,   0);  // Local – yellow
-        default:         return wxColour(220,  50,  50);  // default red
+        case 4: case 9:  return m_warningColors.navarea;
+        case 3: case 8:  return m_warningColors.subArea;
+        case 2: case 7:  return m_warningColors.coastal;
+        case 1: case 6:  return m_warningColors.local;
+        default:         return m_warningColors.other;
     }
 }
 

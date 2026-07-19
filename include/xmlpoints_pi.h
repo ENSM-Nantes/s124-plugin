@@ -56,6 +56,7 @@ private:
     void OnOpenFolder();
     void OnOpenSecomDialog();
     void OnRefreshSecom();
+    void OnOpenWarningColorDialog();
     bool FetchAllSecom(std::vector<S124Warning> &combined, wxArrayString &errors);
     void UpdateAutoRefreshTimer();
 

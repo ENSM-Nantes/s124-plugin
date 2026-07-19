@@ -5,6 +5,7 @@
 #include "SecomClient.h"
 #include "S124Parser.h"
 #include "ToolbarMenuDialog.h"
+#include "WarningColorDialog.h"
 #include <wx/filedlg.h>
 #include <wx/dirdlg.h>
 #include <wx/dir.h>
@@ -29,6 +30,21 @@ public:
 private:
     xmlpoints_pi *m_owner;
 };
+
+wxString ColorToString(const wxColour &c)
+{
+    return c.GetAsString(wxC2S_HTML_SYNTAX);
+}
+
+wxColour ColorFromConfig(wxFileConfig *cfg, const wxString &key, const wxColour &fallback)
+{
+    wxString s;
+    if (cfg->Read(key, &s, wxEmptyString) && !s.IsEmpty()) {
+        wxColour c;
+        if (c.Set(s)) return c;
+    }
+    return fallback;
+}
 } // namespace
 
 // ── icon ───────────────────────────────────────────────────────────────────────
@@ -165,6 +181,7 @@ void xmlpoints_pi::OnToolbarToolCallback(int /*id*/)
         case ToolbarMenuDialog::ACTION_OPEN_FOLDER:   OnOpenFolder();      break;
         case ToolbarMenuDialog::ACTION_SECOM_CFG:     OnOpenSecomDialog(); break;
         case ToolbarMenuDialog::ACTION_SECOM_REFRESH: OnRefreshSecom();    break;
+        case ToolbarMenuDialog::ACTION_WARNING_COLORS: OnOpenWarningColorDialog(); break;
         case ToolbarMenuDialog::ACTION_CLEAR:
             m_layer->Clear();
             RequestRefresh(m_parent_window);
@@ -270,6 +287,16 @@ void xmlpoints_pi::OnOpenSecomDialog()
 
     if (!m_secomConnections.empty())
         OnRefreshSecom();
+}
+
+void xmlpoints_pi::OnOpenWarningColorDialog()
+{
+    WarningColorDialog dlg(m_parent_window, m_layer->GetWarningColors());
+    if (dlg.ShowModal() != wxID_OK) return;
+
+    m_layer->SetWarningColors(dlg.GetColors());
+    SaveConfig();
+    RequestRefresh(m_parent_window);
 }
 
 // Fetches every configured connection and concatenates the results. Returns
@@ -478,6 +505,15 @@ void xmlpoints_pi::LoadConfig()
     cfg->Read(_("SecomAutoRefreshMinutes"), &m_autoRefreshMinutes, 15);
     m_autoRefreshEnabled = (autoRefresh != 0);
     if (m_autoRefreshMinutes <= 0) m_autoRefreshMinutes = 15;
+
+    WarningColors defaults;
+    WarningColors colors;
+    colors.local   = ColorFromConfig(cfg, _("WarningColorLocal"),   defaults.local);
+    colors.coastal = ColorFromConfig(cfg, _("WarningColorCoastal"), defaults.coastal);
+    colors.subArea = ColorFromConfig(cfg, _("WarningColorSubArea"), defaults.subArea);
+    colors.navarea = ColorFromConfig(cfg, _("WarningColorNavarea"), defaults.navarea);
+    colors.other   = ColorFromConfig(cfg, _("WarningColorOther"),   defaults.other);
+    m_layer->SetWarningColors(colors);
 }
 
 void xmlpoints_pi::SaveConfig()
@@ -523,6 +559,13 @@ void xmlpoints_pi::SaveConfig()
 
     cfg->Write(_("SecomAutoRefresh"),        (int)m_autoRefreshEnabled);
     cfg->Write(_("SecomAutoRefreshMinutes"), m_autoRefreshMinutes);
+
+    const WarningColors &colors = m_layer->GetWarningColors();
+    cfg->Write(_("WarningColorLocal"),   ColorToString(colors.local));
+    cfg->Write(_("WarningColorCoastal"), ColorToString(colors.coastal));
+    cfg->Write(_("WarningColorSubArea"), ColorToString(colors.subArea));
+    cfg->Write(_("WarningColorNavarea"), ColorToString(colors.navarea));
+    cfg->Write(_("WarningColorOther"),   ColorToString(colors.other));
 
     cfg->Flush();
 }
