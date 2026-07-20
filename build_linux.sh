@@ -11,7 +11,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_NAME="s124navwarnings_pi"
 BUILD_DIR="/tmp/${PLUGIN_NAME}_build"
 PACKAGE_DIR="/tmp/${PLUGIN_NAME}_package"
-TARBALL="${SCRIPT_DIR}/${PLUGIN_NAME}.tar.gz"
+
+# Map machine arch to OpenCPN arch label. Determined up front (not just in
+# Step 4) because the tarball name is derived from it — this script produces
+# a different-looking .so on x86_64 Debian/Ubuntu vs. armhf/aarch64 Raspberry
+# Pi, and without the arch in the filename both builds would collide under
+# the same "s124navwarnings_pi.tar.gz" name.
+ARCH=$(uname -m)
+case "${ARCH}" in
+    x86_64)  OCPN_ARCH="x86_64" ;;
+    aarch64) OCPN_ARCH="arm64"  ;;
+    armv7l)  OCPN_ARCH="armhf"  ;;
+    *)       OCPN_ARCH="${ARCH}" ;;
+esac
+
+TARBALL="${SCRIPT_DIR}/${PLUGIN_NAME}_linux-${OCPN_ARCH}.tar.gz"
 
 # --------------------------------------------------------------------------
 # Colours
@@ -245,8 +259,8 @@ mkdir -p "${PACKAGE_DIR}/share/opencpn/plugins/${PLUGIN_NAME}"
 
 cp "${SO_PATH}" "${PACKAGE_DIR}/lib/opencpn/"
 
-# Build metadata: derive target string from detected OS/arch
-ARCH=$(uname -m)
+# Build metadata: derive target string from detected OS (ARCH and OCPN_ARCH
+# were already determined up top, ahead of the tarball name)
 OS_ID=$(detect_os_id)
 OS_VER=$(detect_os_version)
 
@@ -255,14 +269,6 @@ case "${OS_ID}" in
     ubuntu|neon|pop|linuxmint) TARGET_OS="ubuntu" ;;
     debian)                    TARGET_OS="debian"  ;;
     *)                         TARGET_OS="ubuntu"  ;;   # safe fallback
-esac
-
-# Map machine arch to OpenCPN arch label
-case "${ARCH}" in
-    x86_64)  OCPN_ARCH="x86_64" ;;
-    aarch64) OCPN_ARCH="arm64"  ;;
-    armv7l)  OCPN_ARCH="armhf"  ;;
-    *)       OCPN_ARCH="${ARCH}" ;;
 esac
 
 OCPN_TARGET="${TARGET_OS}-${OCPN_ARCH}"
@@ -276,7 +282,7 @@ cat > "${PACKAGE_DIR}/metadata.xml" <<EOF
   <summary>Display IHO S-124 navigational warnings on the chart</summary>
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
-  <author>s124navwarnings_pi</author>
+  <author>Pedro Merino Laso</author>
   <description>Displays IHO S-124 navigational warnings on the chart. Supports loading local S-124 GML files and fetching warnings from a SECOM API endpoint. Click any warning marker or area to read the warning text.</description>
   <target>${OCPN_TARGET}</target>
   <build-target>${TARGET_OS}</build-target>
@@ -291,7 +297,7 @@ info "Package metadata: target=${OCPN_TARGET}, version=${OS_VER}, arch=${ARCH}"
 # --------------------------------------------------------------------------
 # Step 5 – Create .tar.gz
 # --------------------------------------------------------------------------
-info "=== Step 5: Creating ${PLUGIN_NAME}.tar.gz ==="
+info "=== Step 5: Creating $(basename "${TARBALL}") ==="
 cd "${PACKAGE_DIR}"
 tar -czf "${TARBALL}" .
 info "Package created: ${TARBALL}"

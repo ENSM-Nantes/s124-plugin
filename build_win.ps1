@@ -56,9 +56,10 @@ $ErrorActionPreference = "Stop"
 # ----------------------------------------------------------------------------
 $ScriptDir   = $PSScriptRoot
 $PluginName  = "s124navwarnings_pi"
+$Arch        = "x86"  # this script only ever produces a Release Win32 (x86) build
 $BuildDir    = Join-Path $env:TEMP "${PluginName}_build"
 $PackageDir  = Join-Path $env:TEMP "${PluginName}_package"
-$TarballPath = Join-Path $ScriptDir "${PluginName}_windows.tar.gz"
+$TarballPath = Join-Path $ScriptDir "${PluginName}_windows-${Arch}.tar.gz"
 
 # ----------------------------------------------------------------------------
 # Logging helpers
@@ -354,7 +355,6 @@ Copy-Item $DllPath "$PackageDir\plugins\${PluginName}.dll"
 # - matching the "msvc-wx32" opencpn-libs folder this build's opencpn.lib came
 # from. An unrecognized <target> string is exactly what "Plugin incompatible"
 # means; it is not a free-form label.
-$Arch = "x86"
 $OcpnTarget = "msvc-wx32"
 $WinVersion = [System.Environment]::OSVersion.Version.ToString()
 $TarballUri = "file:///" + ($TarballPath -replace '\\', '/')
@@ -368,7 +368,7 @@ $TarballUri = "file:///" + ($TarballPath -replace '\\', '/')
   <summary>Display IHO S-124 navigational warnings on the chart</summary>
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
-  <author>s124navwarnings_pi</author>
+  <author>Pedro Merino Laso</author>
   <source>https://example.invalid/s124navwarnings_pi</source>
   <description>Displays IHO S-124 navigational warnings on the chart. Supports loading local S-124 GML files and fetching warnings from a SECOM API endpoint. Click any warning marker or area to read the warning text.</description>
   <target>$OcpnTarget</target>
@@ -383,7 +383,7 @@ Info "Package metadata: target=$OcpnTarget target-version=$WinVersion"
 # ----------------------------------------------------------------------------
 # Step 5 - Create .tar.gz
 # ----------------------------------------------------------------------------
-Info "=== Step 5: Creating ${PluginName}_windows.tar.gz ==="
+Info "=== Step 5: Creating $(Split-Path -Leaf $TarballPath) ==="
 if (-not (Test-Command "tar")) {
     Die ("tar.exe not found in PATH. It ships built-in with Windows 10 1803+/11 - " + `
          "if it's missing, install bsdtar or 7-Zip and adjust this step.")

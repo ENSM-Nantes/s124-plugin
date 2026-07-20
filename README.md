@@ -93,7 +93,10 @@ invoke CMake by hand:
 
 - **`build_linux.sh`** — Linux (Debian/Ubuntu, `apt-get`).
   Installs build dependencies, configures and builds the plugin, and packages
-  it into `s124navwarnings_pi.tar.gz`.
+  it into `s124navwarnings_pi_linux-<arch>.tar.gz` (e.g. `_linux-x86_64`,
+  `_linux-arm64`, or `_linux-armhf` on Raspberry Pi — the architecture is
+  detected automatically, which also keeps builds from different machines
+  from overwriting each other).
   ```bash
   bash build_linux.sh [--install] [--clean]
   ```
@@ -103,7 +106,8 @@ invoke CMake by hand:
 - **`build_win.ps1`** — Windows (MSVC + vcpkg). Locates or
   installs dependencies (vcpkg for curl, prebuilt wxWidgets binaries),
   configures with CMake/MSVC, builds a Release x86 `.dll`, and packages it
-  into the same tarball format expected by OpenCPN's plugin manager.
+  as `s124navwarnings_pi_windows-x86.tar.gz`, using the same tarball format
+  expected by OpenCPN's plugin manager.
   ```powershell
   .\build_win.ps1 [-Install] [-Clean] [-VcpkgRoot <path>] [-Generator <name>]
   ```
@@ -114,6 +118,10 @@ invoke CMake by hand:
 
 The resulting `.tar.gz` can be imported directly through OpenCPN's plugin
 manager on either platform.
+
+## License
+
+Licensed under the [GNU General Public License v3.0](LICENSE).
 
 ## Disclaimer and warranty
 
