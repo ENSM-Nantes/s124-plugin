@@ -1,0 +1,42 @@
+name: Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Pinned (not windows-latest): build_win.ps1 defaults to the
+    # "Visual Studio 17 2022" CMake generator, which requires an actual
+    # VS2022 install to be present. windows-latest is a moving label that
+    # GitHub periodically retargets to newer images; pinning here keeps the
+    # runner's toolchain matched to what the script expects.
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and package
+        shell: pwsh
+        run: .\build_win.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-tarball
+          path: s124navwarnings_pi_windows-*.tar.gz
+          if-no-files-found: error
+
+      - name: Publish to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: s124navwarnings_pi_windows-*.tar.gz
+          generate_release_notes: true

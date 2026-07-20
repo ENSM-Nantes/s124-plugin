@@ -39,8 +39,8 @@ TARBALL="${SCRIPT_DIR}/${PLUGIN_NAME}_linux-${OCPN_ARCH}.tar.gz"
 # Colours
 # --------------------------------------------------------------------------
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
-info()  { echo -e "${GREEN}[INFO]${NC}  $*"; }
-warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
+info()  { echo -e "${GREEN}[INFO]${NC}  $*" >&2; }
+warn()  { echo -e "${YELLOW}[WARN]${NC}  $*" >&2; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 # --------------------------------------------------------------------------

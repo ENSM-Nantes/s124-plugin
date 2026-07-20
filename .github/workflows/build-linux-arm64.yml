@@ -1,0 +1,38 @@
+name: Linux arm64
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Native aarch64 hardware (GitHub-hosted ARM64 runner) - covers 64-bit
+  # Raspberry Pi OS, which is the default on Pi 4/5 today.
+  build:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and package
+        run: bash build_linux.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64-tarball
+          path: s124navwarnings_pi_linux-*.tar.gz
+          if-no-files-found: error
+
+      - name: Publish to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: s124navwarnings_pi_linux-*.tar.gz
+          generate_release_notes: true
