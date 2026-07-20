@@ -12,6 +12,14 @@ PLUGIN_NAME="s124navwarnings_pi"
 BUILD_DIR="/tmp/${PLUGIN_NAME}_build"
 PACKAGE_DIR="/tmp/${PLUGIN_NAME}_package"
 
+# Single source of truth: read the version straight out of CMakeLists.txt's
+# project() call instead of hardcoding it here too.
+PLUGIN_VERSION=$(grep -oP 'project\(\s*s124navwarnings_pi\s+VERSION\s+\K[0-9]+\.[0-9]+\.[0-9]+' "${SCRIPT_DIR}/CMakeLists.txt")
+if [[ -z "${PLUGIN_VERSION}" ]]; then
+    echo "Could not parse plugin version from CMakeLists.txt" >&2
+    exit 1
+fi
+
 # Map machine arch to OpenCPN arch label. Determined up front (not just in
 # Step 4) because the tarball name is derived from it — this script produces
 # a different-looking .so on x86_64 Debian/Ubuntu vs. armhf/aarch64 Raspberry
@@ -71,6 +79,14 @@ if ! command -v apt-get &>/dev/null; then
     error "This script requires apt-get (Debian/Ubuntu family)."
 fi
 
+# Running as root (e.g. inside a container/CI emulated-arch job) typically
+# has no `sudo` binary at all; only elevate when we're not already root.
+if [[ "$(id -u)" -eq 0 ]]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 # Detect OS version — try lsb_release, fall back to /etc/os-release
 detect_os_version() {
     if command -v lsb_release &>/dev/null; then
@@ -111,10 +127,10 @@ BASE_DEPS=(
 )
 
 info "Updating package list…"
-sudo apt-get update -qq || warn "apt-get update had errors (possibly an unsupported PPA); continuing…"
+${SUDO} apt-get update -qq || warn "apt-get update had errors (possibly an unsupported PPA); continuing…"
 
 info "Installing base dependencies: ${BASE_DEPS[*]}"
-sudo apt-get install -y --ignore-missing "${BASE_DEPS[@]}"
+${SUDO} apt-get install -y --ignore-missing "${BASE_DEPS[@]}"
 
 # --------------------------------------------------------------------------
 # wxWidgets: probe for the best available version
@@ -129,7 +145,7 @@ install_wxwidgets() {
     for pkg in "${candidates[@]}"; do
         if apt-cache show "${pkg}" &>/dev/null 2>&1; then
             info "Installing wxWidgets package: ${pkg}"
-            sudo apt-get install -y "${pkg}"
+            ${SUDO} apt-get install -y "${pkg}"
             return 0
         fi
     done
@@ -145,7 +161,7 @@ install_wxwidgets
 # OpenCPN (install the app; provides headers on some distros)
 # --------------------------------------------------------------------------
 info "Attempting to install opencpn and opencpn-dev (optional)…"
-sudo apt-get install -y --ignore-missing opencpn opencpn-dev || true
+${SUDO} apt-get install -y --ignore-missing opencpn opencpn-dev || true
 
 # --------------------------------------------------------------------------
 # Locate ocpn_plugin.h – search standard paths, then installed package, then download
@@ -277,12 +293,13 @@ cat > "${PACKAGE_DIR}/metadata.xml" <<EOF
 <?xml version="1.0" encoding="utf-8" ?>
 <plugin version="1">
   <name>${PLUGIN_NAME}</name>
-  <version>1.0.0</version>
+  <version>${PLUGIN_VERSION}</version>
   <release>1</release>
   <summary>Display IHO S-124 navigational warnings on the chart</summary>
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
   <author>Pedro Merino Laso</author>
+  <source>https://github.com/ENSM-Nantes/plugin-xmlpoints</source>
   <description>Displays IHO S-124 navigational warnings on the chart. Supports loading local S-124 GML files and fetching warnings from a SECOM API endpoint. Click any warning marker or area to read the warning text.</description>
   <target>${OCPN_TARGET}</target>
   <build-target>${TARGET_OS}</build-target>

@@ -1,5 +1,8 @@
 # S-124 Navigational Warnings (OpenCPN plugin)
 
+[![Build and Release](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build.yml/badge.svg)](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/ENSM-Nantes/plugin-xmlpoints)](https://github.com/ENSM-Nantes/plugin-xmlpoints/releases/latest)
+
 OpenCPN plugin for displaying IHO S-124 navigational warnings on the chart.
 
 This is a proof of concept: it demonstrates S-124 GML loading and SECOM-based

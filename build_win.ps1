@@ -68,6 +68,15 @@ function Info  ($msg) { Write-Host "[INFO]  $msg" -ForegroundColor Green }
 function Warn  ($msg) { Write-Host "[WARN]  $msg" -ForegroundColor Yellow }
 function Die   ($msg) { Write-Host "[ERROR] $msg" -ForegroundColor Red; exit 1 }
 
+# Single source of truth: read the version straight out of CMakeLists.txt's
+# project() call instead of hardcoding it here too.
+$CMakeListsContent = Get-Content (Join-Path $ScriptDir "CMakeLists.txt") -Raw
+$VersionMatch = [regex]::Match($CMakeListsContent, 'project\(\s*s124navwarnings_pi\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)')
+if (-not $VersionMatch.Success) {
+    Die "Could not parse plugin version from CMakeLists.txt"
+}
+$PluginVersion = $VersionMatch.Groups[1].Value
+
 # ----------------------------------------------------------------------------
 # Step 0 - Clean (optional)
 # ----------------------------------------------------------------------------
@@ -363,13 +372,13 @@ $TarballUri = "file:///" + ($TarballPath -replace '\\', '/')
 <?xml version="1.0" encoding="utf-8" ?>
 <plugin version="1">
   <name>$PluginName</name>
-  <version>1.0.0</version>
+  <version>$PluginVersion</version>
   <release>1</release>
   <summary>Display IHO S-124 navigational warnings on the chart</summary>
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
   <author>Pedro Merino Laso</author>
-  <source>https://example.invalid/s124navwarnings_pi</source>
+  <source>https://github.com/ENSM-Nantes/plugin-xmlpoints</source>
   <description>Displays IHO S-124 navigational warnings on the chart. Supports loading local S-124 GML files and fetching warnings from a SECOM API endpoint. Click any warning marker or area to read the warning text.</description>
   <target>$OcpnTarget</target>
   <target-version>$WinVersion</target-version>

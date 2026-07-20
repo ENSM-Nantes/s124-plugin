@@ -3,6 +3,15 @@ project(s124navwarnings_pi VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 11)
 
+# Single source of truth for the plugin version: everything else (the C++
+# header, both build scripts' metadata.xml) derives from this instead of
+# hardcoding "1.0.0" in four separate places.
+configure_file(
+    ${CMAKE_SOURCE_DIR}/include/PluginVersion.h.in
+    ${CMAKE_BINARY_DIR}/generated/PluginVersion.h
+    @ONLY
+)
+
 # The source files are UTF-8 (no BOM) and contain non-ASCII punctuation
 # (en dashes, ellipses, arrows, degree signs) inside translatable strings.
 # MSVC otherwise guesses the source/execution charset from the system
@@ -45,6 +54,7 @@ set(OPENCPN_IMPORT_LIB "" CACHE FILEPATH
 include_directories(
     ${OPENCPN_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_BINARY_DIR}/generated
     ${wxWidgets_INCLUDE_DIRS}
 )
 

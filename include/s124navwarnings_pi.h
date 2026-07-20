@@ -7,9 +7,8 @@
 #include "ocpn_plugin.h"
 #include "PointsLayer.h"
 #include "SecomClient.h"
+#include "PluginVersion.h"
 
-#define PLUGIN_VERSION_MAJOR 1
-#define PLUGIN_VERSION_MINOR 0
 #define MY_API_VERSION_MAJOR 1
 #define MY_API_VERSION_MINOR 16
 
