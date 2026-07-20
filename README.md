@@ -115,14 +115,6 @@ invoke CMake by hand:
 The resulting `.tar.gz` can be imported directly through OpenCPN's plugin
 manager on either platform.
 
-## Version history
-
-- **1.0** — Initial version
-
-## Development
-
-This plugin was developed with the assistance of [Claude](https://www.anthropic.com/claude), Anthropic's AI model.
-
 ## Disclaimer and warranty
 
 This software is provided "as is", without warranty of any kind, express or
@@ -133,3 +125,11 @@ incident arising from the use, misuse, or inability to use this software.
 This plugin is not a certified navigational aid and must not be used as the
 sole means of receiving navigational warnings. Always cross-check with
 official sources.
+
+## Development
+
+This plugin was developed with the assistance of [Claude](https://www.anthropic.com/claude), Anthropic's AI model.
+
+## Version history
+
+- **1.0** — Initial version
