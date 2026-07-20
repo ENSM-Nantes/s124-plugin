@@ -41,7 +41,7 @@ source instead, see [Building](#building) below.
 
 ## SECOM Service URLs (France — PING / SHOM)
 
-You can use [PING platform](https://portail.ping-info-nautique.fr/static/s124-2-0) for accesing opperational S-124 data. The IDs are available in the [Documentation](https://portail.ping-info-nautique.fr/static/s124-2-0).
+You can use the [PING platform](https://portail.ping-info-nautique.fr/static/s124-2-0) for accessing operational S-124 data. The IDs are available in the [Documentation](https://portail.ping-info-nautique.fr/static/s124-2-0).
 
 Enter one of these URLs in the **SECOM Base URL** field of the plugin settings.
 
