@@ -1,5 +1,5 @@
-#ifndef XMLPOINTS_PI_H
-#define XMLPOINTS_PI_H
+#ifndef S124NAVWARNINGS_PI_H
+#define S124NAVWARNINGS_PI_H
 
 #include <wx/wx.h>
 #include <wx/fileconf.h>
@@ -8,16 +8,16 @@
 #include "PointsLayer.h"
 #include "SecomClient.h"
 
-#define PLUGIN_VERSION_MAJOR 4
+#define PLUGIN_VERSION_MAJOR 1
 #define PLUGIN_VERSION_MINOR 0
 #define MY_API_VERSION_MAJOR 1
 #define MY_API_VERSION_MINOR 16
 
-class xmlpoints_pi : public opencpn_plugin_116
+class s124navwarnings_pi : public opencpn_plugin_116
 {
 public:
-    xmlpoints_pi(void *ppimgr);
-    ~xmlpoints_pi();
+    s124navwarnings_pi(void *ppimgr);
+    ~s124navwarnings_pi();
 
     int  Init(void) override;
     bool DeInit(void) override;
@@ -28,7 +28,7 @@ public:
     int GetPlugInVersionMajor() override { return PLUGIN_VERSION_MAJOR; }
     int GetPlugInVersionMinor() override { return PLUGIN_VERSION_MINOR; }
 
-    wxString GetCommonName() override { return _("S-124 Warnings"); }
+    wxString GetCommonName() override { return _("S-124 Navigational Warnings"); }
     wxString GetShortDescription() override { return _("Display S-124 navigational warnings"); }
     wxString GetLongDescription() override;
 
@@ -47,7 +47,7 @@ public:
     void SaveConfig();
 
     // Invoked by the auto-refresh timer. Public so the wxTimer subclass that
-    // owns the actual timer (defined in xmlpoints_pi.cpp, outside the class)
+    // owns the actual timer (defined in s124navwarnings_pi.cpp, outside the class)
     // can call it.
     void OnAutoRefreshTimer();
 
@@ -73,4 +73,4 @@ private:
     wxTimer *m_refreshTimer;
 };
 
-#endif // XMLPOINTS_PI_H
+#endif // S124NAVWARNINGS_PI_H

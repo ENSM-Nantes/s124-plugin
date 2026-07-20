@@ -1,12 +1,16 @@
-# plugin-xmlpoints
+# S-124 Navigational Warnings (OpenCPN plugin)
 
 OpenCPN plugin for displaying IHO S-124 navigational warnings on the chart.
 
 ## Features
 
 - Load S-124 GML files from disk (single file or entire folder)
-- Fetch live warnings from a SECOM service endpoint with automatic pagination
-- Renders warning areas, lines, and points as overlays on the chart
+- Fetch live warnings from one or more SECOM service endpoints, with automatic
+  pagination and optional periodic auto-refresh
+- Renders warning areas, lines, and points as overlays on the chart, colored
+  by warning severity (Local, Coastal, Sub-area, NAVAREA) — colors are
+  user-configurable and apply the same way across every SECOM connection
+- Click any warning marker or area on the chart to read its full text
 
 ## SECOM Service URLs (France — PING / SHOM)
 
@@ -54,6 +58,7 @@ Enter one of these URLs in the **SECOM Base URL** field of the plugin settings.
 
 ## Version history
 
+- **1.0** — Renamed to S-124 Navigational Warnings; version numbering reset
 - **4.0** — SECOM ZIP (S-100 Exchange Set) decoding; 1-based pagination; pageSize capped at 40
 - **3.2** — SECOM searchService POST with pagination; open folder menu option
 - **3.1** — Open S-124 folder menu option

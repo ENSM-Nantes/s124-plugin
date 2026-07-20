@@ -1,4 +1,4 @@
-#include "xmlpoints_pi.h"
+#include "s124navwarnings_pi.h"
 #include "Utf8Text.h"
 #include "InfoDialog.h"
 #include "SecomListDialog.h"
@@ -14,21 +14,21 @@
 #include <wx/region.h>
 #include <cstring>
 
-extern "C" DECL_EXP opencpn_plugin *create_pi(void *ppimgr) { return new xmlpoints_pi(ppimgr); }
+extern "C" DECL_EXP opencpn_plugin *create_pi(void *ppimgr) { return new s124navwarnings_pi(ppimgr); }
 extern "C" DECL_EXP void destroy_pi(opencpn_plugin *p) { delete p; }
 
 namespace {
 // Routes wxTimer notifications to the plugin. A plain member wxTimer can't do
-// this itself because xmlpoints_pi (an opencpn_plugin_116) is not a
+// this itself because s124navwarnings_pi (an opencpn_plugin_116) is not a
 // wxEvtHandler, so there is no window to bind wxEVT_TIMER to.
 class SecomRefreshTimer : public wxTimer
 {
 public:
-    explicit SecomRefreshTimer(xmlpoints_pi *owner) : m_owner(owner) {}
+    explicit SecomRefreshTimer(s124navwarnings_pi *owner) : m_owner(owner) {}
     void Notify() override { m_owner->OnAutoRefreshTimer(); }
 
 private:
-    xmlpoints_pi *m_owner;
+    s124navwarnings_pi *m_owner;
 };
 
 wxString ColorToString(const wxColour &c)
@@ -95,7 +95,7 @@ static wxBitmap MakeWarningTriangleBitmap()
 
 // ── constructor / destructor ──────────────────────────────────────────────────
 
-xmlpoints_pi::xmlpoints_pi(void *ppimgr)
+s124navwarnings_pi::s124navwarnings_pi(void *ppimgr)
     : opencpn_plugin_116(ppimgr)
     , m_toolbar_item_id(-1)
     , m_layer(nullptr)
@@ -108,7 +108,7 @@ xmlpoints_pi::xmlpoints_pi(void *ppimgr)
     m_layer = new PointsLayer();
 }
 
-xmlpoints_pi::~xmlpoints_pi()
+s124navwarnings_pi::~s124navwarnings_pi()
 {
     delete m_refreshTimer;
     delete m_layer;
@@ -116,7 +116,7 @@ xmlpoints_pi::~xmlpoints_pi()
 
 // ── Init / DeInit ─────────────────────────────────────────────────────────────
 
-int xmlpoints_pi::Init(void)
+int s124navwarnings_pi::Init(void)
 {
     LoadConfig();
     m_parent_window = GetOCPNCanvasWindow();
@@ -142,12 +142,12 @@ int xmlpoints_pi::Init(void)
            WANTS_CONFIG;
 }
 
-wxBitmap *xmlpoints_pi::GetPlugInBitmap()
+wxBitmap *s124navwarnings_pi::GetPlugInBitmap()
 {
     return &m_pluginBitmap;
 }
 
-bool xmlpoints_pi::DeInit(void)
+bool s124navwarnings_pi::DeInit(void)
 {
     if (m_refreshTimer)
         m_refreshTimer->Stop();
@@ -157,7 +157,7 @@ bool xmlpoints_pi::DeInit(void)
     return true;
 }
 
-wxString xmlpoints_pi::GetLongDescription()
+wxString s124navwarnings_pi::GetLongDescription()
 {
     return _(
         "S-124 Navigational Warnings Plugin\n\n"
@@ -171,7 +171,7 @@ wxString xmlpoints_pi::GetLongDescription()
 
 // ── toolbar callback → action dialog ──────────────────────────────────────────
 
-void xmlpoints_pi::OnToolbarToolCallback(int /*id*/)
+void s124navwarnings_pi::OnToolbarToolCallback(int /*id*/)
 {
     ToolbarMenuDialog dlg(m_parent_window, !m_secomConnections.empty());
     if (dlg.ShowModal() != wxID_OK) return;
@@ -192,7 +192,7 @@ void xmlpoints_pi::OnToolbarToolCallback(int /*id*/)
 
 // ── source handlers ───────────────────────────────────────────────────────────
 
-void xmlpoints_pi::OnOpenLocalFile()
+void s124navwarnings_pi::OnOpenLocalFile()
 {
     wxFileDialog dlg(
         m_parent_window,
@@ -222,7 +222,7 @@ void xmlpoints_pi::OnOpenLocalFile()
     RequestRefresh(m_parent_window);
 }
 
-void xmlpoints_pi::OnOpenFolder()
+void s124navwarnings_pi::OnOpenFolder()
 {
     wxDirDialog dlg(
         m_parent_window,
@@ -273,7 +273,7 @@ void xmlpoints_pi::OnOpenFolder()
     wxMessageBox(msg, _("S-124 Warnings"), wxOK | wxICON_INFORMATION, m_parent_window);
 }
 
-void xmlpoints_pi::OnOpenSecomDialog()
+void s124navwarnings_pi::OnOpenSecomDialog()
 {
     SecomListDialog dlg(m_parent_window, m_secomConnections,
                         m_autoRefreshEnabled, m_autoRefreshMinutes);
@@ -289,7 +289,7 @@ void xmlpoints_pi::OnOpenSecomDialog()
         OnRefreshSecom();
 }
 
-void xmlpoints_pi::OnOpenWarningColorDialog()
+void s124navwarnings_pi::OnOpenWarningColorDialog()
 {
     WarningColorDialog dlg(m_parent_window, m_layer->GetWarningColors());
     if (dlg.ShowModal() != wxID_OK) return;
@@ -302,7 +302,7 @@ void xmlpoints_pi::OnOpenWarningColorDialog()
 // Fetches every configured connection and concatenates the results. Returns
 // false (with 'errors' populated) if any connection failed; connections that
 // did succeed are still included in 'combined'.
-bool xmlpoints_pi::FetchAllSecom(std::vector<S124Warning> &combined, wxArrayString &errors)
+bool s124navwarnings_pi::FetchAllSecom(std::vector<S124Warning> &combined, wxArrayString &errors)
 {
     for (const auto &cfg : m_secomConnections) {
         std::vector<S124Warning> warnings;
@@ -319,7 +319,7 @@ bool xmlpoints_pi::FetchAllSecom(std::vector<S124Warning> &combined, wxArrayStri
     return errors.IsEmpty();
 }
 
-void xmlpoints_pi::OnRefreshSecom()
+void s124navwarnings_pi::OnRefreshSecom()
 {
     if (m_secomConnections.empty()) {
         wxMessageBox(_U("No SECOM connections configured.\n"
@@ -356,7 +356,7 @@ void xmlpoints_pi::OnRefreshSecom()
 // but silent (no modal progress dialog or success popup) so it doesn't
 // interrupt the user every time the interval elapses. Failures are logged
 // rather than shown, for the same reason.
-void xmlpoints_pi::OnAutoRefreshTimer()
+void s124navwarnings_pi::OnAutoRefreshTimer()
 {
     if (m_secomConnections.empty()) return;
 
@@ -371,7 +371,7 @@ void xmlpoints_pi::OnAutoRefreshTimer()
         wxLogWarning("S-124 SECOM auto-refresh: %s", wxJoin(errors, ';'));
 }
 
-void xmlpoints_pi::UpdateAutoRefreshTimer()
+void s124navwarnings_pi::UpdateAutoRefreshTimer()
 {
     if (m_refreshTimer) {
         m_refreshTimer->Stop();
@@ -387,31 +387,31 @@ void xmlpoints_pi::UpdateAutoRefreshTimer()
 
 // ── rendering ─────────────────────────────────────────────────────────────────
 
-bool xmlpoints_pi::RenderOverlay(wxDC &dc, PlugIn_ViewPort *vp)
+bool s124navwarnings_pi::RenderOverlay(wxDC &dc, PlugIn_ViewPort *vp)
 {
     m_layer->Render(dc, vp);
     return true;
 }
 
-bool xmlpoints_pi::RenderOverlayMultiCanvas(wxDC &dc, PlugIn_ViewPort *vp, int)
+bool s124navwarnings_pi::RenderOverlayMultiCanvas(wxDC &dc, PlugIn_ViewPort *vp, int)
 {
     return RenderOverlay(dc, vp);
 }
 
-bool xmlpoints_pi::RenderGLOverlay(wxGLContext *, PlugIn_ViewPort *vp)
+bool s124navwarnings_pi::RenderGLOverlay(wxGLContext *, PlugIn_ViewPort *vp)
 {
     m_layer->RenderGL(vp);
     return true;
 }
 
-bool xmlpoints_pi::RenderGLOverlayMultiCanvas(wxGLContext *ctx, PlugIn_ViewPort *vp, int)
+bool s124navwarnings_pi::RenderGLOverlayMultiCanvas(wxGLContext *ctx, PlugIn_ViewPort *vp, int)
 {
     return RenderGLOverlay(ctx, vp);
 }
 
 // ── mouse ─────────────────────────────────────────────────────────────────────
 
-bool xmlpoints_pi::MouseEventHook(wxMouseEvent &event)
+bool s124navwarnings_pi::MouseEventHook(wxMouseEvent &event)
 {
     if (!event.LeftDown()) return false;
 
@@ -451,7 +451,7 @@ bool xmlpoints_pi::MouseEventHook(wxMouseEvent &event)
 
 // ── config ────────────────────────────────────────────────────────────────────
 
-void xmlpoints_pi::LoadConfig()
+void s124navwarnings_pi::LoadConfig()
 {
     wxFileConfig *cfg = GetOCPNConfigObject();
     if (!cfg) return;
@@ -516,7 +516,7 @@ void xmlpoints_pi::LoadConfig()
     m_layer->SetWarningColors(colors);
 }
 
-void xmlpoints_pi::SaveConfig()
+void s124navwarnings_pi::SaveConfig()
 {
     wxFileConfig *cfg = GetOCPNConfigObject();
     if (!cfg) return;

@@ -95,7 +95,7 @@ static void CommonCurlOpts(CURL *curl, const SecomConfig &cfg, std::string *buf)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA,      buf);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT,        (long)cfg.timeoutSec);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION,  1L);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT,      "xmlpoints_pi/1.0 (S-124)");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT,      "s124navwarnings_pi/1.0 (S-124)");
     if (!cfg.sslVerify) {
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);

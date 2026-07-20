@@ -1,13 +1,14 @@
 <#
 .SYNOPSIS
-    Builds and packages the XML Points OpenCPN plugin on Windows (MSVC + vcpkg).
+    Builds and packages the S-124 Navigational Warnings OpenCPN plugin on
+    Windows (MSVC + vcpkg).
 
 .DESCRIPTION
-    Windows counterpart to build_xmlpoints_pi.sh. Installs/locates build
+    Windows counterpart to build_s124navwarnings_pi.sh. Installs/locates build
     dependencies (curl via vcpkg, wxWidgets via wxWidgets.org's own prebuilt
     Windows binaries - see the wxWidgets section below for why NOT vcpkg),
     configures the project with CMake + MSVC, builds a Release Win32 (x86)
-    xmlpoints_pi.dll - matching the prebuilt opencpn.lib import library
+    s124navwarnings_pi.dll - matching the prebuilt opencpn.lib import library
     available for this plugin API version - and packages it into a .tar.gz
     (OpenCPN's plugin manager import expects a tarball, not a .zip, on every
     platform including Windows).
@@ -35,9 +36,9 @@
     is wrong wholesale.
 
 .EXAMPLE
-    .\build_xmlpoints_pi.ps1
-    .\build_xmlpoints_pi.ps1 -Install
-    .\build_xmlpoints_pi.ps1 -Clean -Install
+    .\build_s124navwarnings_pi.ps1
+    .\build_s124navwarnings_pi.ps1 -Install
+    .\build_s124navwarnings_pi.ps1 -Clean -Install
 #>
 
 [CmdletBinding()]
@@ -54,7 +55,7 @@ $ErrorActionPreference = "Stop"
 # Paths
 # ----------------------------------------------------------------------------
 $ScriptDir   = $PSScriptRoot
-$PluginName  = "xmlpoints_pi"
+$PluginName  = "s124navwarnings_pi"
 $BuildDir    = Join-Path $env:TEMP "${PluginName}_build"
 $PackageDir  = Join-Path $env:TEMP "${PluginName}_package"
 $TarballPath = Join-Path $ScriptDir "${PluginName}_windows.tar.gz"
@@ -364,12 +365,12 @@ $TarballUri = "file:///" + ($TarballPath -replace '\\', '/')
   <name>$PluginName</name>
   <version>1.0.0</version>
   <release>1</release>
-  <summary>Plot points from an XML file on the chart</summary>
+  <summary>Display IHO S-124 navigational warnings on the chart</summary>
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
-  <author>xmlpoints_pi</author>
-  <source>https://example.invalid/xmlpoints_pi</source>
-  <description>Reads an XML file with latitude, longitude and information fields. Plots each entry as a clickable marker on the chart. Clicking a marker shows a popup with the information text.</description>
+  <author>s124navwarnings_pi</author>
+  <source>https://example.invalid/s124navwarnings_pi</source>
+  <description>Displays IHO S-124 navigational warnings on the chart. Supports loading local S-124 GML files and fetching warnings from a SECOM API endpoint. Click any warning marker or area to read the warning text.</description>
   <target>$OcpnTarget</target>
   <target-version>$WinVersion</target-version>
   <target-arch>$Arch</target-arch>
@@ -427,13 +428,13 @@ Write-Host "    3. Select: $TarballPath"
 Write-Host "    4. RESTART OpenCPN completely - the plugin only appears after restart."
 Write-Host ""
 Write-Host "  Option B - direct user install (no GUI needed):"
-Write-Host "    .\build_xmlpoints_pi.ps1 -Install"
+Write-Host "    .\build_s124navwarnings_pi.ps1 -Install"
 Write-Host "    Then restart OpenCPN."
 Write-Host ""
 Write-Host "  TROUBLESHOOTING:"
 Write-Host "    - If OpenCPN doesn't load the plugin, check its log (Help -> About -> Logfile,"
-Write-Host "      or %LOCALAPPDATA%\opencpn\opencpn.log) for xmlpoints/DLL load errors."
-Write-Host "    - Look for 'Checking plugin compatibility: ...xmlpoints_pi.dll' in that log."
+Write-Host "      or %LOCALAPPDATA%\opencpn\opencpn.log) for s124navwarnings/DLL load errors."
+Write-Host "    - Look for 'Checking plugin compatibility: ...s124navwarnings_pi.dll' in that log."
 Write-Host "      If the next line is NOT 'Found wxWidgets core DLL: ...wxmsw32u_core_vc14x.dll',"
 Write-Host "      OpenCPN will mark it 'Plugin is compatible: false' and silently uninstall it."
 Write-Host "      That means the `$WxVersion setting in this script ($WxVersion) no longer"

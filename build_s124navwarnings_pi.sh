@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-# build_xmlpoints_pi.sh
-# Builds and packages the XML Points OpenCPN plugin for Debian/Ubuntu systems.
-# Usage:  bash build_xmlpoints_pi.sh [--install] [--clean]
+# build_s124navwarnings_pi.sh
+# Builds and packages the S-124 Navigational Warnings OpenCPN plugin for
+# Debian/Ubuntu systems.
+# Usage:  bash build_s124navwarnings_pi.sh [--install] [--clean]
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_NAME="xmlpoints_pi"
+PLUGIN_NAME="s124navwarnings_pi"
 BUILD_DIR="/tmp/${PLUGIN_NAME}_build"
 PACKAGE_DIR="/tmp/${PLUGIN_NAME}_package"
 TARBALL="${SCRIPT_DIR}/${PLUGIN_NAME}.tar.gz"
@@ -272,11 +273,11 @@ cat > "${PACKAGE_DIR}/metadata.xml" <<EOF
   <name>${PLUGIN_NAME}</name>
   <version>1.0.0</version>
   <release>1</release>
-  <summary>Plot points from an XML file on the chart</summary>
+  <summary>Display IHO S-124 navigational warnings on the chart</summary>
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
-  <author>xmlpoints_pi</author>
-  <description>Reads an XML file with latitude, longitude and information fields. Plots each entry as a clickable marker on the chart. Clicking a marker shows a popup with the information text.</description>
+  <author>s124navwarnings_pi</author>
+  <description>Displays IHO S-124 navigational warnings on the chart. Supports loading local S-124 GML files and fetching warnings from a SECOM API endpoint. Click any warning marker or area to read the warning text.</description>
   <target>${OCPN_TARGET}</target>
   <build-target>${TARGET_OS}</build-target>
   <build-gtk>gtk3</build-gtk>
@@ -340,14 +341,14 @@ echo "    sudo cp ${SO_PATH} /usr/lib/opencpn/"
 echo "    Then restart OpenCPN."
 echo ""
 echo "  TROUBLESHOOTING – if the plugin does not appear after restart:"
-echo "    Check: ~/.opencpn/opencpn.log  (look for xmlpoints errors)"
-echo "    Verify: ls ~/.local/lib/opencpn/libxmlpoints_pi.so  (after option B)"
-echo "    Verify: ls /usr/lib/opencpn/libxmlpoints_pi.so      (after option C)"
+echo "    Check: ~/.opencpn/opencpn.log  (look for s124navwarnings errors)"
+echo "    Verify: ls ~/.local/lib/opencpn/lib${PLUGIN_NAME}.so  (after option B)"
+echo "    Verify: ls /usr/lib/opencpn/lib${PLUGIN_NAME}.so      (after option C)"
 echo ""
 echo "HOW TO USE:"
 echo "  1. Start OpenCPN."
-echo "  2. Go to Options → Plugins → XML Points → Enable."
-echo "  3. Close Options and click the XML Points toolbar button (blue circle icon)."
-echo "  4. Choose your XML file."
-echo "  5. Click any red marker on the chart to see its information."
+echo "  2. Go to Options → Plugins → S-124 Navigational Warnings → Enable."
+echo "  3. Close Options and click the S-124 toolbar button (warning triangle icon)."
+echo "  4. Open a local S-124 GML file or configure a SECOM connection."
+echo "  5. Click any warning marker or area on the chart to read its text."
 echo ""

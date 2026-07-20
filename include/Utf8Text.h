@@ -1,5 +1,5 @@
-#ifndef XMLPOINTS_UTF8TEXT_H
-#define XMLPOINTS_UTF8TEXT_H
+#ifndef S124NAVWARNINGS_UTF8TEXT_H
+#define S124NAVWARNINGS_UTF8TEXT_H
 
 #include <wx/intl.h>
 #include <wx/string.h>
