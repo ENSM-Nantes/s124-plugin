@@ -14,6 +14,8 @@ OpenCPN plugin for displaying IHO S-124 navigational warnings on the chart.
 
 ## SECOM Service URLs (France — PING / SHOM)
 
+You can use [PING platform](https://portail.ping-info-nautique.fr/static/s124-2-0) for accesing opperational S-124 data. The IDs are available in the [Documentation](https://portail.ping-info-nautique.fr/static/s124-2-0).
+
 Enter one of these URLs in the **SECOM Base URL** field of the plugin settings.
 
 > No API key is required for public access. Leave the API Key field empty.
@@ -58,7 +60,4 @@ Enter one of these URLs in the **SECOM Base URL** field of the plugin settings.
 
 ## Version history
 
-- **1.0** — Renamed to S-124 Navigational Warnings; version numbering reset
-- **4.0** — SECOM ZIP (S-100 Exchange Set) decoding; 1-based pagination; pageSize capped at 40
-- **3.2** — SECOM searchService POST with pagination; open folder menu option
-- **3.1** — Open S-124 folder menu option
+- **1.0** — Initial version
