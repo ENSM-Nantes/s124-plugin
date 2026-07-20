@@ -12,6 +12,28 @@ OpenCPN plugin for displaying IHO S-124 navigational warnings on the chart.
   user-configurable and apply the same way across every SECOM connection
 - Click any warning marker or area on the chart to read its full text
 
+## Installation
+
+Pre-built packages are published on the [Releases](../../releases) page as
+`.tar.gz` archives, one per platform:
+
+- **Windows** (x86 `.dll`, MSVC build)
+- **Linux** (x86_64 `.so`, Debian/Ubuntu build)
+- **Raspberry Pi** (armhf/aarch64 `.so`, Raspberry Pi OS build)
+
+To install:
+
+1. Download the archive matching your platform from the Releases page.
+2. Open OpenCPN, go to **Options → Plugins**, and use **Import Plugin** (or
+   drag the `.tar.gz` onto the plugin list, depending on your OpenCPN
+   version) to load the downloaded archive directly — there's no need to
+   extract it first.
+3. Enable the "S-124 Navigational Warnings" plugin and restart OpenCPN if
+   prompted.
+
+If no package is available for your platform, or you want to build from
+source instead, see [Building](#building) below.
+
 ## SECOM Service URLs (France — PING / SHOM)
 
 You can use [PING platform](https://portail.ping-info-nautique.fr/static/s124-2-0) for accesing opperational S-124 data. The IDs are available in the [Documentation](https://portail.ping-info-nautique.fr/static/s124-2-0).
