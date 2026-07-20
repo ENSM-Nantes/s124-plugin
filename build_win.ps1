@@ -4,7 +4,7 @@
     Windows (MSVC + vcpkg).
 
 .DESCRIPTION
-    Windows counterpart to build_s124navwarnings_pi.sh. Installs/locates build
+    Windows counterpart to build_linux.sh. Installs/locates build
     dependencies (curl via vcpkg, wxWidgets via wxWidgets.org's own prebuilt
     Windows binaries - see the wxWidgets section below for why NOT vcpkg),
     configures the project with CMake + MSVC, builds a Release Win32 (x86)
@@ -36,9 +36,9 @@
     is wrong wholesale.
 
 .EXAMPLE
-    .\build_s124navwarnings_pi.ps1
-    .\build_s124navwarnings_pi.ps1 -Install
-    .\build_s124navwarnings_pi.ps1 -Clean -Install
+    .\build_win.ps1
+    .\build_win.ps1 -Install
+    .\build_win.ps1 -Clean -Install
 #>
 
 [CmdletBinding()]
@@ -428,7 +428,7 @@ Write-Host "    3. Select: $TarballPath"
 Write-Host "    4. RESTART OpenCPN completely - the plugin only appears after restart."
 Write-Host ""
 Write-Host "  Option B - direct user install (no GUI needed):"
-Write-Host "    .\build_s124navwarnings_pi.ps1 -Install"
+Write-Host "    .\build_win.ps1 -Install"
 Write-Host "    Then restart OpenCPN."
 Write-Host ""
 Write-Host "  TROUBLESHOOTING:"

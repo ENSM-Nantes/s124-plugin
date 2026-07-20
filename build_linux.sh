@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# build_s124navwarnings_pi.sh
+# build_linux.sh
 # Builds and packages the S-124 Navigational Warnings OpenCPN plugin for
 # Debian/Ubuntu systems.
-# Usage:  bash build_s124navwarnings_pi.sh [--install] [--clean]
+# Usage:  bash build_linux.sh [--install] [--clean]
 # =============================================================================
 set -euo pipefail
 

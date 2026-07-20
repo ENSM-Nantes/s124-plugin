@@ -91,21 +91,21 @@ The plugin is a CMake project (`CMakeLists.txt`) with two helper scripts that
 wrap the full build-and-package process, so you normally don't need to
 invoke CMake by hand:
 
-- **`build_s124navwarnings_pi.sh`** — Linux (Debian/Ubuntu, `apt-get`).
+- **`build_linux.sh`** — Linux (Debian/Ubuntu, `apt-get`).
   Installs build dependencies, configures and builds the plugin, and packages
   it into `s124navwarnings_pi.tar.gz`.
   ```bash
-  bash build_s124navwarnings_pi.sh [--install] [--clean]
+  bash build_linux.sh [--install] [--clean]
   ```
   - `--install` copies the built `.so` into `~/.opencpn/plugins/` afterwards
   - `--clean` removes previous build/package artifacts first
 
-- **`build_s124navwarnings_pi.ps1`** — Windows (MSVC + vcpkg). Locates or
+- **`build_win.ps1`** — Windows (MSVC + vcpkg). Locates or
   installs dependencies (vcpkg for curl, prebuilt wxWidgets binaries),
   configures with CMake/MSVC, builds a Release x86 `.dll`, and packages it
   into the same tarball format expected by OpenCPN's plugin manager.
   ```powershell
-  .\build_s124navwarnings_pi.ps1 [-Install] [-Clean] [-VcpkgRoot <path>] [-Generator <name>]
+  .\build_win.ps1 [-Install] [-Clean] [-VcpkgRoot <path>] [-Generator <name>]
   ```
   - `-Install` copies the built DLL into the OpenCPN plugin directory
   - `-Clean` removes previous build artifacts (and the tarball) first
