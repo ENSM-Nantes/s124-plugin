@@ -16,14 +16,14 @@ ToolbarMenuDialog::ToolbarMenuDialog(wxWindow *parent, bool secomConfigured)
         top->Add(btn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
     };
 
-    addButton(ACTION_OPEN_FILE,     _U("Open local S-124 file…"));
-    addButton(ACTION_OPEN_FOLDER,   _U("Open S-124 folder…"));
-    addButton(ACTION_SECOM_CFG,     _U("SECOM connections…"));
-    addButton(ACTION_SECOM_REFRESH, _("Refresh from SECOM"), secomConfigured);
-    addButton(ACTION_WARNING_COLORS, _U("Warning colors…"));
-    addButton(ACTION_CLEAR,         _("Clear all warnings"));
+    addButton(ACTION_SECOM_CFG,     _U("SECOM connections"));
+    addButton(ACTION_SECOM_REFRESH, _U("Refresh from SECOM"), secomConfigured);
+    addButton(ACTION_OPEN_FILE,     _U("Open local S-124 file"));
+    addButton(ACTION_OPEN_FOLDER,   _U("Open S-124 folder"));
+    addButton(ACTION_WARNING_COLORS, _U("Warning colors"));
+    addButton(ACTION_CLEAR,         _U("Clear all warnings"));
 
-    wxButton *cancel = new wxButton(this, wxID_CANCEL, _("Cancel"));
+    wxButton *cancel = new wxButton(this, wxID_CANCEL, _U("Close"));
     top->Add(cancel, 0, wxEXPAND | wxALL, 10);
 
     // Force a minimum width well past what the buttons alone need - on

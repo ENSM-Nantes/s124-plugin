@@ -2,6 +2,11 @@
 
 OpenCPN plugin for displaying IHO S-124 navigational warnings on the chart.
 
+This is a proof of concept: it demonstrates S-124 GML loading and SECOM-based
+retrieval of navigational warnings within OpenCPN, but has not undergone the
+testing or validation expected of production navigational software. See the
+[Disclaimer and warranty](#disclaimer-and-warranty) section below before use.
+
 ## Features
 
 - Load S-124 GML files from disk (single file or entire folder)
