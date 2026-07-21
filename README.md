@@ -3,7 +3,7 @@
 [![Linux x86_64](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-x86_64.yml/badge.svg)](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-x86_64.yml)
 [![Linux arm64](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-arm64.yml/badge.svg)](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-arm64.yml)
 [![Windows](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-windows.yml/badge.svg)](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-windows.yml)
-[![Latest release](https://img.shields.io/github/v/release/ENSM-Nantes/plugin-xmlpoints)](https://github.com/ENSM-Nantes/plugin-xmlpoints/releases/latest)
+![Release](https://img.shields.io/github/v/release/ENSM-Nantes/plugin-xmlpoints)
 
 OpenCPN plugin for displaying IHO S-124 navigational warnings on the chart.
 
