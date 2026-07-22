@@ -12,6 +12,8 @@ retrieval of navigational warnings within OpenCPN, but has not undergone the
 testing or validation expected of production navigational software. See the
 [Disclaimer and warranty](#disclaimer-and-warranty) section below before use.
 
+![S-124 warnings overview](https://github.com/ENSM-Nantes/plugin-xmlpoints/blob/main/screenshots/plugin-s-124-1.png)
+
 ## Features
 
 - Load S-124 GML files from disk (single file or entire folder)
@@ -21,6 +23,8 @@ testing or validation expected of production navigational software. See the
   by warning severity (Local, Coastal, Sub-area, NAVAREA) — colors are
   user-configurable and apply the same way across every SECOM connection
 - Click any warning marker or area on the chart to read its full text
+
+![S-124 warning detail](https://github.com/ENSM-Nantes/plugin-xmlpoints/blob/main/screenshots/plugin-s-124-2.png)
 
 ## Installation
 
