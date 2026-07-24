@@ -1,9 +1,9 @@
 # S-124 Navigational Warnings (OpenCPN plugin)
 
-[![Linux x86_64](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-x86_64.yml/badge.svg)](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-x86_64.yml)
-[![Linux arm64](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-arm64.yml/badge.svg)](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-linux-arm64.yml)
-[![Windows](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-windows.yml/badge.svg)](https://github.com/ENSM-Nantes/plugin-xmlpoints/actions/workflows/build-windows.yml)
-[![Latest release](https://img.shields.io/github/v/release/ENSM-Nantes/plugin-xmlpoints)](https://github.com/ENSM-Nantes/plugin-xmlpoints/releases/latest)
+[![Linux x86_64](https://github.com/ENSM-Nantes/s124-plugin/actions/workflows/build-linux-x86_64.yml/badge.svg)](https://github.com/ENSM-Nantes/s124-plugin/actions/workflows/build-linux-x86_64.yml)
+[![Linux arm64](https://github.com/ENSM-Nantes/s124-plugin/actions/workflows/build-linux-arm64.yml/badge.svg)](https://github.com/ENSM-Nantes/s124-plugin/actions/workflows/build-linux-arm64.yml)
+[![Windows](https://github.com/ENSM-Nantes/s124-plugin/actions/workflows/build-windows.yml/badge.svg)](https://github.com/ENSM-Nantes/s124-plugin/actions/workflows/build-windows.yml)
+[![Latest release](https://img.shields.io/github/v/release/ENSM-Nantes/s124-plugin)](https://github.com/ENSM-Nantes/s124-plugin/releases/latest)
 
 OpenCPN plugin for displaying IHO S-124 navigational warnings on the chart.
 
@@ -12,7 +12,7 @@ retrieval of navigational warnings within OpenCPN, but has not undergone the
 testing or validation expected of production navigational software. See the
 [Disclaimer and warranty](#disclaimer-and-warranty) section below before use.
 
-![S-124 warnings overview](https://github.com/ENSM-Nantes/plugin-xmlpoints/blob/main/screenshots/plugin-s-124-1.png)
+![S-124 warnings overview](https://github.com/ENSM-Nantes/s124-plugin/blob/main/screenshots/plugin-s-124-1.png)
 
 ## Features
 
@@ -24,7 +24,7 @@ testing or validation expected of production navigational software. See the
   user-configurable and apply the same way across every SECOM connection
 - Click any warning marker or area on the chart to read its full text
 
-![S-124 warning detail](https://github.com/ENSM-Nantes/plugin-xmlpoints/blob/main/screenshots/plugin-s-124-2.png)
+![S-124 warning detail](https://github.com/ENSM-Nantes/s124-plugin/blob/main/screenshots/plugin-s-124-2.png)
 
 ## Installation
 

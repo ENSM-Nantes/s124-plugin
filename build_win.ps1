@@ -378,7 +378,7 @@ $TarballUri = "file:///" + ($TarballPath -replace '\\', '/')
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
   <author>Pedro Merino Laso</author>
-  <source>https://github.com/ENSM-Nantes/plugin-xmlpoints</source>
+  <source>https://github.com/ENSM-Nantes/s124-plugin</source>
   <description>Displays IHO S-124 navigational warnings on the chart. Supports loading local S-124 GML files and fetching warnings from a SECOM API endpoint. Click any warning marker or area to read the warning text.</description>
   <target>$OcpnTarget</target>
   <target-version>$WinVersion</target-version>
