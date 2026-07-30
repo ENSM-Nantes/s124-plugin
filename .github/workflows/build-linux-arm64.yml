@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build and package
-        run: bash build_linux.sh
+        run: bash build_linux-RPi.sh
 
       - uses: actions/upload-artifact@v4
         with:
