@@ -132,6 +132,11 @@ manager on either platform.
 
 Licensed under the [GNU General Public License v3.0](LICENSE).
 
+If you use this plugin, please cite our related article:
+Merino Laso P., Ahmad H.: Towards an Open Platform for S-100 Service Experimentation: A Proof-of-Concept S-124 Navigational Warnings Plugin for OpenCPN. TransNav, the International Journal on Marine Navigation and Safety of Sea Transportation, Vol. 20, No. 3, doi:10.12716/1001.20.03.04, pp. 557-565, 2026
+
+This work has received funding from HORIZON Europe with grant agreement No. 101076633 (OVER- HEAT project) under European Union’s Horizon Europe Innovation Actions Framework Programme.
+
 ## Disclaimer and warranty
 
 This software is provided "as is", without warranty of any kind, express or
