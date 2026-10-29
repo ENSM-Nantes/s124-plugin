@@ -64,7 +64,8 @@ void S124Parser::CollectPosList(wxXmlNode *node,
     wxXmlNode *plN = FindChild(node, wxT("posList"));
     if (plN) { ParsePosList(plN->GetNodeContent().Strip(), out); return; }
 
-    // Walk children for pos nodes or nested posList (Curve segments)
+    // Walk children for pos nodes, recursing into nested elements: a Curve's
+    // coordinates sit at segments > LineStringSegment > posList
     wxXmlNode *c = node->GetChildren();
     while (c) {
         if (c->GetType() == wxXML_ELEMENT_NODE) {
@@ -72,8 +73,7 @@ void S124Parser::CollectPosList(wxXmlNode *node,
             if (ln == wxT("pos")) {
                 ParsePos(c->GetNodeContent().Strip(), out);
             } else {
-                wxXmlNode *nested = FindChild(c, wxT("posList"));
-                if (nested) ParsePosList(nested->GetNodeContent().Strip(), out);
+                CollectPosList(c, out);
             }
         }
         c = c->GetNext();
