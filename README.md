@@ -94,6 +94,17 @@ Enter one of these URLs in the **SECOM Base URL** field of the plugin settings.
 | AVIRADE BREST | `https://services.ping-info-nautique.fr/secom/avirade_brest_fr` |
 | AVIRADE CHERBOURG | `https://services.ping-info-nautique.fr/secom/avirade_cherbourg_fr` |
 
+## SECOM Service URLs (NAVAREA III — NautoShark)
+
+[NautoShark](https://nautoshark.com) publishes S-124 2.0.0 datasets for NAVAREA III (Mediterranean and Black Sea) through a SECOM service.
+
+> An API key is required. Enter it in the **API Key** field, with no `Bearer` prefix.
+
+| Series | Base URL |
+|---|---|
+| NAVAREA III warnings in force | `https://navareasapi.azurewebsites.net/s124/secom/area-3` |
+| NAVAREA III and its coastal warnings | `https://navareasapi.azurewebsites.net/s124/secom/navarea-III` |
+
 ## Building
 
 The plugin is a CMake project (`CMakeLists.txt`) with two helper scripts that
